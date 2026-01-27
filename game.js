@@ -13,8 +13,8 @@ let selectedCrop = "carrot";
 let money = 10;
 let tiles = JSON.parse(localStorage.getItem("tiles")) || {};
 let savedMoney = localStorage.getItem("money");
-let penguinPos = JSON.parse(localStorage.getItem("penguinPos")) || 7; // începe pe primul tile liber
-let FREE_TILES = [7, 8, 13, 14]; // 4 tile-uri libere la start
+let penguinPos = JSON.parse(localStorage.getItem("penguinPos")) || 7;
+let FREE_TILES = JSON.parse(localStorage.getItem("freeTiles")) || [7, 8, 13, 14];
 
 if (savedMoney !== null) money = parseInt(savedMoney);
 moneyEl.textContent = "💰 " + money;
@@ -27,6 +27,7 @@ function saveGame() {
   localStorage.setItem("tiles", JSON.stringify(tiles));
   localStorage.setItem("money", money);
   localStorage.setItem("penguinPos", penguinPos);
+  localStorage.setItem("freeTiles", JSON.stringify(FREE_TILES));
 }
 
 // formatează timpul în mm:ss
@@ -47,26 +48,31 @@ function drawFarm() {
     if (FREE_TILES.includes(i)) {
       tile.classList.add("free");
 
+      let plant = tiles[i];
       let isPenguin = penguinPos === i;
-      let penguinEmoji = isPenguin ? "🐧" : "";
 
-      if (tiles[i]) {
-        const crop = crops[tiles[i].type];
-        let elapsed = Date.now() - tiles[i].plantedAt;
+      // afisare plantă + timer
+      if (plant) {
+        const crop = crops[plant.type];
+        let elapsed = Date.now() - plant.plantedAt;
         let effectiveTime = crop.time;
 
         if (isPenguin) effectiveTime *= 0.8; // −20% timp
 
         let remaining = Math.max(0, effectiveTime - elapsed);
-        tile.innerHTML = `${crop.emoji} ${remaining > 0 ? formatTime(remaining) : ""} ${penguinEmoji}`;
+        tile.innerHTML = `${crop.emoji} ${remaining > 0 ? formatTime(remaining) : ""}`;
+        // adaug pinguin peste plantă vizual
+        if (isPenguin) tile.innerHTML += " 🐧";
 
         if (remaining <= 0) {
           tile.onclick = () => harvest(i);
         } else {
-          tile.onclick = () => movePenguin(i); // poți muta pinguinul chiar dacă planta nu e gata
+          tile.onclick = () => movePenguin(i);
         }
+
       } else {
-        tile.textContent = penguinEmoji;
+        // doar pinguin sau tile gol
+        tile.textContent = isPenguin ? "🐧" : "";
         tile.onclick = () => movePenguin(i);
       }
 
@@ -104,7 +110,7 @@ function harvest(index) {
 
 // mutare pinguin
 function movePenguin(index) {
-  if (!FREE_TILES.includes(index)) return; // doar pe tile liber
+  if (!FREE_TILES.includes(index)) return;
   penguinPos = index;
   saveGame();
   drawFarm();
@@ -114,3 +120,4 @@ function movePenguin(index) {
 setInterval(drawFarm, 1000);
 
 drawFarm();
+
