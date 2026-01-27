@@ -1,0 +1,38 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #e6f6ff;
+  text-align: center;
+}
+
+#farm {
+  display: grid;
+  grid-template-columns: repeat(6, 60px);
+  grid-gap: 6px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.tile {
+  width: 60px;
+  height: 60px;
+  background: #b3e5fc;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.tile.free {
+  background: #a5d6a7;
+}
+
+.tile.frozen {
+  background: #cfd8dc;
+}
+#toolbar {
+  margin-top: 10px;
+}
+
+#toolbar button {
+  font-size: 24px;
+  margin: 5px;
+  cursor: pointer;
+}
