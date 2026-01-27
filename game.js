@@ -1,4 +1,4 @@
-const farm = document.getElementById("farm");
+const farm = document.getElementById("farm");const farm = document.getElementById("farm");
 const moneyEl = document.getElementById("money");
 
 const GRID_SIZE = 6;
@@ -50,20 +50,19 @@ function drawFarm() {
 
       let plant = tiles[i];
       let isPenguin = penguinPos === i;
+      let penguinEmoji = isPenguin ? "🐧" : "";
 
-      // afisare plantă + timer
+      // dacă există plantă
       if (plant) {
         const crop = crops[plant.type];
         let elapsed = Date.now() - plant.plantedAt;
         let effectiveTime = crop.time;
-
-        if (isPenguin) effectiveTime *= 0.8; // −20% timp
+        if (isPenguin) effectiveTime *= 0.8; // bonus pinguin
 
         let remaining = Math.max(0, effectiveTime - elapsed);
-        tile.innerHTML = `${crop.emoji} ${remaining > 0 ? formatTime(remaining) : ""}`;
-        // adaug pinguin peste plantă vizual
-        if (isPenguin) tile.innerHTML += " 🐧";
+        tile.innerHTML = `${crop.emoji} ${remaining > 0 ? formatTime(remaining) : ""} ${penguinEmoji}`;
 
+        // click = recoltare dacă gata, altfel mută pinguin
         if (remaining <= 0) {
           tile.onclick = () => harvest(i);
         } else {
@@ -71,9 +70,12 @@ function drawFarm() {
         }
 
       } else {
-        // doar pinguin sau tile gol
-        tile.textContent = isPenguin ? "🐧" : "";
-        tile.onclick = () => movePenguin(i);
+        // tile liber fără plantă
+        tile.textContent = penguinEmoji;
+        tile.onclick = () => {
+          if (!isPenguin) plant(i);
+          else movePenguin(i);
+        };
       }
 
     } else {
@@ -120,3 +122,5 @@ function movePenguin(index) {
 setInterval(drawFarm, 1000);
 
 drawFarm();
+
+
