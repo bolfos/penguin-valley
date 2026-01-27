@@ -1,4 +1,4 @@
-const farm = document.getElementById("farm");const farm = document.getElementById("farm");
+const farm = document.getElementById("farm");
 const moneyEl = document.getElementById("money");
 
 const GRID_SIZE = 6;
@@ -122,5 +122,3 @@ function movePenguin(index) {
 setInterval(drawFarm, 1000);
 
 drawFarm();
-
-
