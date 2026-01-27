@@ -120,4 +120,3 @@ function movePenguin(index) {
 setInterval(drawFarm, 1000);
 
 drawFarm();
-
