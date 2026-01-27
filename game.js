@@ -3,14 +3,14 @@ const moneyEl = document.getElementById("money");
 
 const GRID_SIZE = 6;
 
-// culturile disponibile
+// Culturile disponibile
 const crops = {
   carrot: { emoji: "🥕", time: 60_000, profit: 5, cost: 1 },
   cabbage: { emoji: "🥬", time: 180_000, profit: 15, cost: 3 },
   flower: { emoji: "🌼", time: 360_000, profit: 40, cost: 5 }
 };
 
-// starea jocului
+// Starea jocului
 let selectedCrop = "carrot";
 let money = 10;
 let tiles = JSON.parse(localStorage.getItem("tiles")) || {};
@@ -21,12 +21,12 @@ let FREE_TILES = JSON.parse(localStorage.getItem("freeTiles")) || [7, 8, 13, 14]
 if (savedMoney !== null) money = parseInt(savedMoney);
 moneyEl.textContent = "💰 " + money;
 
-// selectarea culturii
+// Selectarea culturii
 function selectCrop(type) {
   selectedCrop = type;
 }
 
-// salvare locală
+// Salvare locală
 function saveGame() {
   localStorage.setItem("tiles", JSON.stringify(tiles));
   localStorage.setItem("money", money);
@@ -34,7 +34,7 @@ function saveGame() {
   localStorage.setItem("freeTiles", JSON.stringify(FREE_TILES));
 }
 
-// formatează timpul în mm:ss
+// Formatare timp mm:ss
 function formatTime(ms) {
   let totalSec = Math.ceil(ms / 1000);
   let min = Math.floor(totalSec / 60);
@@ -42,7 +42,7 @@ function formatTime(ms) {
   return `${min}:${sec < 10 ? "0" : ""}${sec}`;
 }
 
-// desenare farm
+// Desenare farm
 function drawFarm() {
   farm.innerHTML = "";
 
@@ -57,17 +57,16 @@ function drawFarm() {
       let isPenguin = penguinPos === i;
       let penguinEmoji = isPenguin ? "🐧" : "";
 
-      // Caz 1: Tile cu plantă
       if (plant) {
+        // Tile cu plantă
         const crop = crops[plant.type];
         let elapsed = Date.now() - plant.plantedAt;
         let effectiveTime = crop.time;
         if (isPenguin) effectiveTime *= 0.8; // bonus pinguin
-
         let remaining = Math.max(0, effectiveTime - elapsed);
+
         tile.innerHTML = `${crop.emoji} ${remaining > 0 ? formatTime(remaining) : ""} ${penguinEmoji}`;
 
-        // click = recoltare dacă gata, altfel mută pinguin
         if (remaining <= 0) {
           tile.onclick = () => harvest(i);
         } else {
@@ -75,16 +74,13 @@ function drawFarm() {
         }
 
       } else {
-        // Caz 2: Tile liber fără plantă
+        // Tile liber fără plantă
         tile.textContent = penguinEmoji;
-        tile.onclick = () => {
-          if (!isPenguin) plant(i);
-          else movePenguin(i);
-        };
+        tile.onclick = () => plant(i); // Plantare funcționează întotdeauna
       }
 
     } else {
-      // Caz 3: Tile înghețat
+      // Tile înghețat
       tile.classList.add("frozen");
     }
 
@@ -92,10 +88,10 @@ function drawFarm() {
   }
 }
 
-// plantare cultură
+// Plantare cultură
 function plant(index) {
   const crop = crops[selectedCrop];
-  if (money < crop.cost || tiles[index]) return;
+  if (money < crop.cost) return;
 
   money -= crop.cost;
   tiles[index] = { type: selectedCrop, plantedAt: Date.now() };
@@ -105,7 +101,7 @@ function plant(index) {
   drawFarm();
 }
 
-// recoltare
+// Recoltare
 function harvest(index) {
   const crop = crops[tiles[index].type];
   money += crop.profit;
@@ -116,7 +112,7 @@ function harvest(index) {
   drawFarm();
 }
 
-// mutare pinguin
+// Mutare pinguin
 function movePenguin(index) {
   if (!FREE_TILES.includes(index)) return;
   penguinPos = index;
@@ -124,8 +120,8 @@ function movePenguin(index) {
   drawFarm();
 }
 
-// redraw timer la fiecare secundă
+// Redraw timer la fiecare secundă
 setInterval(drawFarm, 1000);
 
-// desenare inițială
+// Desenare inițială
 drawFarm();
