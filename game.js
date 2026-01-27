@@ -3,12 +3,14 @@ const moneyEl = document.getElementById("money");
 
 const GRID_SIZE = 6;
 
+// culturile disponibile
 const crops = {
   carrot: { emoji: "🥕", time: 60_000, profit: 5, cost: 1 },
   cabbage: { emoji: "🥬", time: 180_000, profit: 15, cost: 3 },
   flower: { emoji: "🌼", time: 360_000, profit: 40, cost: 5 }
 };
 
+// starea jocului
 let selectedCrop = "carrot";
 let money = 10;
 let tiles = JSON.parse(localStorage.getItem("tiles")) || {};
@@ -19,10 +21,12 @@ let FREE_TILES = JSON.parse(localStorage.getItem("freeTiles")) || [7, 8, 13, 14]
 if (savedMoney !== null) money = parseInt(savedMoney);
 moneyEl.textContent = "💰 " + money;
 
+// selectarea culturii
 function selectCrop(type) {
   selectedCrop = type;
 }
 
+// salvare locală
 function saveGame() {
   localStorage.setItem("tiles", JSON.stringify(tiles));
   localStorage.setItem("money", money);
@@ -38,6 +42,7 @@ function formatTime(ms) {
   return `${min}:${sec < 10 ? "0" : ""}${sec}`;
 }
 
+// desenare farm
 function drawFarm() {
   farm.innerHTML = "";
 
@@ -52,7 +57,7 @@ function drawFarm() {
       let isPenguin = penguinPos === i;
       let penguinEmoji = isPenguin ? "🐧" : "";
 
-      // dacă există plantă
+      // Caz 1: Tile cu plantă
       if (plant) {
         const crop = crops[plant.type];
         let elapsed = Date.now() - plant.plantedAt;
@@ -70,7 +75,7 @@ function drawFarm() {
         }
 
       } else {
-        // tile liber fără plantă
+        // Caz 2: Tile liber fără plantă
         tile.textContent = penguinEmoji;
         tile.onclick = () => {
           if (!isPenguin) plant(i);
@@ -79,6 +84,7 @@ function drawFarm() {
       }
 
     } else {
+      // Caz 3: Tile înghețat
       tile.classList.add("frozen");
     }
 
@@ -86,7 +92,7 @@ function drawFarm() {
   }
 }
 
-// plantare
+// plantare cultură
 function plant(index) {
   const crop = crops[selectedCrop];
   if (money < crop.cost || tiles[index]) return;
@@ -118,7 +124,8 @@ function movePenguin(index) {
   drawFarm();
 }
 
-// update continuu pentru timer vizibil
+// redraw timer la fiecare secundă
 setInterval(drawFarm, 1000);
 
+// desenare inițială
 drawFarm();
