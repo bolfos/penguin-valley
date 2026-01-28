@@ -1,10 +1,11 @@
 const farm = document.getElementById("farm");
 const moneyEl = document.getElementById("money");
 
-const GRID_SIZE = 6;
+const GRID = 6;
+const FREE_TILES = [7, 8, 13, 14];
 
 const crops = {
-  carrot:  { emoji: "🥕", time: 60000,  profit: 5,  cost: 1 },
+  carrot:  { emoji: "🥕", time: 60000, profit: 5, cost: 1 },
   cabbage: { emoji: "🥬", time: 180000, profit: 15, cost: 3 },
   flower:  { emoji: "🌼", time: 360000, profit: 40, cost: 5 }
 };
@@ -14,29 +15,22 @@ let money = Number(localStorage.getItem("money")) || 10;
 let tiles = JSON.parse(localStorage.getItem("tiles")) || {};
 let penguinPos = Number(localStorage.getItem("penguinPos")) || 7;
 
-const FREE_TILES = [7, 8, 13, 14];
-
 moneyEl.textContent = "💰 " + money;
+
+function save() {
+  localStorage.setItem("money", money);
+  localStorage.setItem("tiles", JSON.stringify(tiles));
+  localStorage.setItem("penguinPos", penguinPos);
+}
 
 function selectCrop(type) {
   selectedCrop = type;
 }
 
-function saveGame() {
-  localStorage.setItem("tiles", JSON.stringify(tiles));
-  localStorage.setItem("money", money);
-  localStorage.setItem("penguinPos", penguinPos);
-}
-
-function formatTime(ms) {
-  const s = Math.ceil(ms / 1000);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-}
-
 function drawFarm() {
   farm.innerHTML = "";
 
-  for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+  for (let i = 0; i < GRID * GRID; i++) {
     const tile = document.createElement("div");
     tile.className = "tile";
 
@@ -60,44 +54,52 @@ function drawFarm() {
 
       tile.textContent =
         crop.emoji +
-        (remaining > 0 ? " " + formatTime(remaining) : "") +
+        (remaining > 0 ? " ⏳" : "") +
         (isPenguin ? " 🐧" : "");
 
-      tile.onclick = remaining <= 0
-        ? () => harvest(i)
-        : () => movePenguin(i);
+      tile.onclick =
+        remaining <= 0 ? () => harvest(i) : () => movePenguin(i);
     }
 
     farm.appendChild(tile);
   }
 }
 
-function plant(index) {
+function plant(i) {
   const crop = crops[selectedCrop];
-  if (tiles[index] || money < crop.cost) return;
+  if (tiles[i] || money < crop.cost) return;
 
   money -= crop.cost;
-  tiles[index] = { type: selectedCrop, plantedAt: Date.now() };
-
+  tiles[i] = { type: selectedCrop, plantedAt: Date.now() };
   moneyEl.textContent = "💰 " + money;
-  saveGame();
+
+  save();
   drawFarm();
 }
 
-function harvest(index) {
-  const crop = crops[tiles[index].type];
+function harvest(i) {
+  const crop = crops[tiles[i].type];
   money += crop.profit;
-  delete tiles[index];
+  delete tiles[i];
 
   moneyEl.textContent = "💰 " + money;
-  saveGame();
+  save();
   drawFarm();
 }
 
-function movePenguin(index) {
-  penguinPos = index;
-  saveGame();
+function movePenguin(i) {
+  penguinPos = i;
+  save();
   drawFarm();
+}
+
+/* MARKET */
+function openMarket() {
+  document.getElementById("market").classList.remove("hidden");
+}
+
+function closeMarket() {
+  document.getElementById("market").classList.add("hidden");
 }
 
 setInterval(drawFarm, 1000);

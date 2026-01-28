@@ -1,27 +1,62 @@
 body {
+  margin: 0;
   font-family: Arial, sans-serif;
-  background: #e6f6ff;
-  text-align: center;
+  background: linear-gradient(#cceeff, #ffffff);
 }
 
+/* TOP BAR */
+#topbar {
+  background: #4fc3f7;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  color: white;
+  font-size: 20px;
+}
+
+/* LAYOUT */
+#layout {
+  display: flex;
+  height: calc(100vh - 50px);
+}
+
+/* SIDEBAR */
+#sidebar {
+  width: 200px;
+  background: #e1f5fe;
+  padding: 10px;
+}
+
+#sidebar button {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+/* GAME */
+#game {
+  flex: 1;
+  padding: 20px;
+}
+
+/* FARM GRID */
 #farm {
   display: grid;
-  grid-template-columns: repeat(6, 60px);
-  gap: 6px;
+  grid-template-columns: repeat(6, 70px);
+  gap: 8px;
   justify-content: center;
-  margin-top: 20px;
 }
 
 .tile {
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   background: #b3e5fc;
-  border-radius: 8px;
-  cursor: pointer;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  cursor: pointer;
 }
 
 .tile.free {
@@ -33,12 +68,22 @@ body {
   cursor: default;
 }
 
-#toolbar {
-  margin-top: 10px;
+/* MODAL */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-#toolbar button {
-  font-size: 24px;
-  margin: 5px;
-  cursor: pointer;
+.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
 }

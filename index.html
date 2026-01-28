@@ -1,22 +1,50 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8" />
-  <title>Penguin Valley</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>Penguin Farmer</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>🐧 Penguin Valley</h1>
 
-  <div id="money">💰 10</div>
-<div id="toolbar">
-  <button onclick="selectCrop('carrot')">🥕</button>
-  <button onclick="selectCrop('cabbage')">🥬</button>
-  <button onclick="selectCrop('flower')">🌼</button>
+<!-- TOP BAR -->
+<header id="topbar">
+  <div class="logo">🐧 Penguin Farmer</div>
+  <div class="money" id="money">💰 10</div>
+</header>
+
+<!-- MAIN LAYOUT -->
+<div id="layout">
+
+  <!-- SIDEBAR -->
+  <aside id="sidebar">
+    <h3>🌱 Culturi</h3>
+    <button onclick="selectCrop('carrot')">🥕 Morcov</button>
+    <button onclick="selectCrop('cabbage')">🥬 Varză</button>
+    <button onclick="selectCrop('flower')">🌼 Floare</button>
+
+    <h3>🏪 Oraș</h3>
+    <button onclick="openMarket()">Market</button>
+    <button onclick="alert('În curând')">Harta</button>
+  </aside>
+
+  <!-- GAME AREA -->
+  <main id="game">
+    <h2>🌾 Ferma ta</h2>
+    <div id="farm"></div>
+  </main>
+
 </div>
 
-  <div id="farm"></div>
+<!-- MARKET WINDOW -->
+<div id="market" class="modal hidden">
+  <div class="modal-content">
+    <h2>🏪 Market</h2>
+    <p>Vinde recolta (în curând)</p>
+    <button onclick="closeMarket()">Închide</button>
+  </div>
+</div>
 
-  <script src="game.js"></script>
+<script src="game.js"></script>
 </body>
 </html>
