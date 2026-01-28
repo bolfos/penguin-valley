@@ -31,9 +31,7 @@ body {
   padding: 10px;
 }
 
-#sidebar h3 {
-  margin-top: 15px;
-}
+#sidebar h3 { margin-top: 15px; }
 
 #sidebar button {
   width: 100%;
@@ -42,10 +40,7 @@ body {
   cursor: pointer;
 }
 
-#game {
-  flex: 1;
-  padding: 20px;
-}
+#game { flex: 1; padding: 20px; }
 
 #farm {
   display: grid;
@@ -69,7 +64,7 @@ body {
 .tile.free { background: #a5d6a7; }
 .tile.frozen { background: #cfd8dc; }
 
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 .modal {
   position: fixed;
@@ -78,13 +73,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 999;
 }
 
 .modal-content {
   background: white;
   padding: 20px;
   border-radius: 10px;
-  min-width: 250px;
+  min-width: 260px;
 }
 
 .map button {
@@ -151,6 +147,7 @@ body {
 </main>
 </div>
 
+<!-- MARKET -->
 <div id="market" class="modal hidden">
   <div class="modal-content">
     <h2>🏪 Market</h2>
@@ -159,6 +156,7 @@ body {
   </div>
 </div>
 
+<!-- QUESTS -->
 <div id="quests" class="modal hidden">
   <div class="modal-content">
     <h2>📜 Misiuni</h2>
@@ -168,7 +166,7 @@ body {
 </div>
 
 <script>
-/* === GAME LOGIC === */
+/* === GAME LOGIC STABIL === */
 const GRID = 6;
 const farm = document.getElementById("farm");
 const moneyEl = document.getElementById("money");
@@ -299,9 +297,9 @@ function selectDeco(d){decoMode=d;selectedCrop=null;}
 
 function goTo(z){
   currentZone=z;
-  document.getElementById("farmView").classList.add("hidden");
-  document.getElementById("mapView").classList.add("hidden");
-  document.getElementById("cityView").classList.add("hidden");
+  ["farm","map","city"].forEach(v=>{
+    document.getElementById(v+"View").classList.add("hidden");
+  });
   document.getElementById(z+"View").classList.remove("hidden");
   document.getElementById("zone").textContent="📍 "+(z==="farm"?"Ferma":z==="map"?"Harta":"Oraș");
   save();
@@ -311,13 +309,7 @@ function buyDog(){if(money<50)return;money-=50;dogs++;save();updateUI();}
 function buySnowmobile(){if(money<100)return;money-=100;vehicle="snowmobile";save();updateUI();}
 
 function openMarket(){
-  const inv=document.getElementById("inventory");
-  inv.innerHTML="";
-  for(let k in inventory){
-    const d=document.createElement("div");
-    d.textContent=k+" x"+inventory[k];
-    inv.appendChild(d);
-  }
+  document.getElementById("inventory").innerHTML="";
   document.getElementById("market").classList.remove("hidden");
 }
 function closeMarket(){document.getElementById("market").classList.add("hidden");}
@@ -336,13 +328,19 @@ function openQuests(){
     const b=document.createElement("button");
     b.textContent="Finalizează";
     b.disabled=x.done;
-    b.onclick=()=>{x.done=true;money+=x.reward;save();updateUI();openQuests();}
+    b.onclick=()=>{
+      x.done=true;
+      money+=x.reward;
+      save();updateUI();openQuests();
+    };
     d.appendChild(b);
     q.appendChild(d);
   });
   document.getElementById("quests").classList.remove("hidden");
 }
-function closeQuests(){document.getElementById("quests").classList.add("hidden");}
+function closeQuests(){
+  document.getElementById("quests").classList.add("hidden");
+}
 
 updateUI();
 goTo(currentZone);
