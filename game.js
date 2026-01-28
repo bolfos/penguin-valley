@@ -3,95 +3,78 @@ const moneyEl = document.getElementById("money");
 
 const GRID_SIZE = 6;
 
-// Culturile disponibile
 const crops = {
-  carrot: { emoji: "🥕", time: 60_000, profit: 5, cost: 1 },
-  cabbage: { emoji: "🥬", time: 180_000, profit: 15, cost: 3 },
-  flower: { emoji: "🌼", time: 360_000, profit: 40, cost: 5 }
+  carrot:  { emoji: "🥕", time: 60000,  profit: 5,  cost: 1 },
+  cabbage: { emoji: "🥬", time: 180000, profit: 15, cost: 3 },
+  flower:  { emoji: "🌼", time: 360000, profit: 40, cost: 5 }
 };
 
-// Starea jocului
 let selectedCrop = "carrot";
-let money = 10;
+let money = Number(localStorage.getItem("money")) || 10;
 let tiles = JSON.parse(localStorage.getItem("tiles")) || {};
-let savedMoney = localStorage.getItem("money");
-let penguinPos = JSON.parse(localStorage.getItem("penguinPos")) || 7;
-let FREE_TILES = JSON.parse(localStorage.getItem("freeTiles")) || [7, 8, 13, 14];
+let penguinPos = Number(localStorage.getItem("penguinPos")) || 7;
 
-if (savedMoney !== null) money = parseInt(savedMoney);
+const FREE_TILES = [7, 8, 13, 14];
+
 moneyEl.textContent = "💰 " + money;
 
-// Selectarea culturii
 function selectCrop(type) {
   selectedCrop = type;
 }
 
-// Salvare locală
 function saveGame() {
   localStorage.setItem("tiles", JSON.stringify(tiles));
   localStorage.setItem("money", money);
   localStorage.setItem("penguinPos", penguinPos);
-  localStorage.setItem("freeTiles", JSON.stringify(FREE_TILES));
 }
 
-// Formatare timp mm:ss
 function formatTime(ms) {
-  let totalSec = Math.ceil(ms / 1000);
-  let min = Math.floor(totalSec / 60);
-  let sec = totalSec % 60;
-  return `${min}:${sec < 10 ? "0" : ""}${sec}`;
+  const s = Math.ceil(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
-// Desenare farm
 function drawFarm() {
   farm.innerHTML = "";
 
   for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
     const tile = document.createElement("div");
-    tile.classList.add("tile");
+    tile.className = "tile";
 
-    if (FREE_TILES.includes(i)) {
-      tile.classList.add("free");
-
-      let plant = tiles[i];
-      let isPenguin = penguinPos === i;
-      let penguinEmoji = isPenguin ? "🐧" : "";
-
-      if (plant) {
-        // Tile cu plantă
-        const crop = crops[plant.type];
-        let elapsed = Date.now() - plant.plantedAt;
-        let effectiveTime = crop.time;
-        if (isPenguin) effectiveTime *= 0.8; // bonus pinguin
-        let remaining = Math.max(0, effectiveTime - elapsed);
-
-        tile.innerHTML = `${crop.emoji} ${remaining > 0 ? formatTime(remaining) : ""} ${penguinEmoji}`;
-
-        if (remaining <= 0) {
-          tile.onclick = () => harvest(i);
-        } else {
-          tile.onclick = () => movePenguin(i);
-        }
-
-      } else {
-        // Tile liber fără plantă
-        tile.textContent = penguinEmoji;
-        tile.onclick = () => plant(i); // Plantare funcționează întotdeauna
-      }
-
-    } else {
-      // Tile înghețat
+    if (!FREE_TILES.includes(i)) {
       tile.classList.add("frozen");
+      farm.appendChild(tile);
+      continue;
+    }
+
+    tile.classList.add("free");
+    const isPenguin = penguinPos === i;
+
+    if (!tiles[i]) {
+      tile.textContent = isPenguin ? "🐧" : "";
+      tile.onclick = () => plant(i);
+    } else {
+      const crop = crops[tiles[i].type];
+      let elapsed = Date.now() - tiles[i].plantedAt;
+      let growTime = isPenguin ? crop.time * 0.8 : crop.time;
+      let remaining = growTime - elapsed;
+
+      tile.textContent =
+        crop.emoji +
+        (remaining > 0 ? " " + formatTime(remaining) : "") +
+        (isPenguin ? " 🐧" : "");
+
+      tile.onclick = remaining <= 0
+        ? () => harvest(i)
+        : () => movePenguin(i);
     }
 
     farm.appendChild(tile);
   }
 }
 
-// Plantare cultură
 function plant(index) {
   const crop = crops[selectedCrop];
-  if (money < crop.cost) return;
+  if (tiles[index] || money < crop.cost) return;
 
   money -= crop.cost;
   tiles[index] = { type: selectedCrop, plantedAt: Date.now() };
@@ -101,7 +84,6 @@ function plant(index) {
   drawFarm();
 }
 
-// Recoltare
 function harvest(index) {
   const crop = crops[tiles[index].type];
   money += crop.profit;
@@ -112,16 +94,11 @@ function harvest(index) {
   drawFarm();
 }
 
-// Mutare pinguin
 function movePenguin(index) {
-  if (!FREE_TILES.includes(index)) return;
   penguinPos = index;
   saveGame();
   drawFarm();
 }
 
-// Redraw timer la fiecare secundă
 setInterval(drawFarm, 1000);
-
-// Desenare inițială
 drawFarm();

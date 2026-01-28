@@ -7,7 +7,7 @@ body {
 #farm {
   display: grid;
   grid-template-columns: repeat(6, 60px);
-  grid-gap: 6px;
+  gap: 6px;
   justify-content: center;
   margin-top: 20px;
 }
@@ -18,6 +18,10 @@ body {
   background: #b3e5fc;
   border-radius: 8px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
 }
 
 .tile.free {
@@ -26,7 +30,9 @@ body {
 
 .tile.frozen {
   background: #cfd8dc;
+  cursor: default;
 }
+
 #toolbar {
   margin-top: 10px;
 }
