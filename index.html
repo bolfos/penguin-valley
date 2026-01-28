@@ -7,41 +7,71 @@
 </head>
 <body>
 
-<!-- TOP BAR -->
 <header id="topbar">
   <div class="logo">🐧 Penguin Farmer</div>
-  <div class="money" id="money">💰 10</div>
+  <div id="stats">
+    <span id="money">💰 10</span>
+    <span id="level">⭐ Lv 1</span>
+    <span id="zone">📍 Ferma</span>
+  </div>
 </header>
 
-<!-- MAIN LAYOUT -->
 <div id="layout">
 
-  <!-- SIDEBAR -->
   <aside id="sidebar">
+    <h3>🌍 Navigare</h3>
+    <button onclick="goTo('farm')">🌾 Ferma</button>
+    <button onclick="goTo('map')">🗺️ Hartă</button>
+    <button onclick="goTo('city')">🏘️ Oraș</button>
+
     <h3>🌱 Culturi</h3>
     <button onclick="selectCrop('carrot')">🥕 Morcov</button>
     <button onclick="selectCrop('cabbage')">🥬 Varză</button>
     <button onclick="selectCrop('flower')">🌼 Floare</button>
-
-    <h3>🏪 Oraș</h3>
-    <button onclick="openMarket()">Market</button>
-    <button onclick="alert('În curând')">Harta</button>
   </aside>
 
-  <!-- GAME AREA -->
   <main id="game">
-    <h2>🌾 Ferma ta</h2>
-    <div id="farm"></div>
-  </main>
 
+    <!-- FERMA -->
+    <section id="farmView">
+      <h2>🌾 Ferma ta</h2>
+      <div id="farm"></div>
+    </section>
+
+    <!-- HARTA -->
+    <section id="mapView" class="hidden">
+      <h2>🗺️ Harta Polarului</h2>
+      <div class="map">
+        <button onclick="goTo('farm')">🌾 Ferma</button>
+        <button onclick="goTo('city')">🏘️ South Poleville</button>
+      </div>
+    </section>
+
+    <!-- ORAȘ -->
+    <section id="cityView" class="hidden">
+      <h2>🏘️ South Poleville</h2>
+      <button onclick="openMarket()">🏪 Market</button>
+      <button onclick="openQuests()">📜 Misiuni</button>
+    </section>
+
+  </main>
 </div>
 
-<!-- MARKET WINDOW -->
+<!-- MARKET -->
 <div id="market" class="modal hidden">
   <div class="modal-content">
     <h2>🏪 Market</h2>
-    <p>Vinde recolta (în curând)</p>
+    <div id="inventory"></div>
     <button onclick="closeMarket()">Închide</button>
+  </div>
+</div>
+
+<!-- QUESTS -->
+<div id="quests" class="modal hidden">
+  <div class="modal-content">
+    <h2>📜 Misiuni</h2>
+    <div id="questList"></div>
+    <button onclick="closeQuests()">Închide</button>
   </div>
 </div>
 

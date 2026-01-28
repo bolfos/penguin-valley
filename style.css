@@ -4,23 +4,20 @@ body {
   background: linear-gradient(#cceeff, #ffffff);
 }
 
-/* TOP BAR */
 #topbar {
   background: #4fc3f7;
   padding: 10px 20px;
   display: flex;
   justify-content: space-between;
   color: white;
-  font-size: 20px;
+  font-size: 18px;
 }
 
-/* LAYOUT */
 #layout {
   display: flex;
   height: calc(100vh - 50px);
 }
 
-/* SIDEBAR */
 #sidebar {
   width: 200px;
   background: #e1f5fe;
@@ -34,13 +31,11 @@ body {
   cursor: pointer;
 }
 
-/* GAME */
 #game {
   flex: 1;
   padding: 20px;
 }
 
-/* FARM GRID */
 #farm {
   display: grid;
   grid-template-columns: repeat(6, 70px);
@@ -51,24 +46,17 @@ body {
 .tile {
   width: 70px;
   height: 70px;
-  background: #b3e5fc;
   border-radius: 10px;
+  background: #b3e5fc;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
 }
 
-.tile.free {
-  background: #a5d6a7;
-}
+.tile.free { background: #a5d6a7; }
+.tile.frozen { background: #cfd8dc; cursor: pointer; }
 
-.tile.frozen {
-  background: #cfd8dc;
-  cursor: default;
-}
-
-/* MODAL */
 .modal {
   position: fixed;
   inset: 0;
@@ -78,12 +66,22 @@ body {
   justify-content: center;
 }
 
-.hidden {
-  display: none;
-}
+.hidden { display: none; }
 
 .modal-content {
   background: white;
   padding: 20px;
   border-radius: 10px;
+}
+.hidden { display:none; }
+
+.map button {
+  font-size: 18px;
+  margin: 10px;
+  padding: 15px;
+}
+
+#cityView button {
+  padding: 10px;
+  margin: 10px;
 }
