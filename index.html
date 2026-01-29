@@ -7,44 +7,62 @@
 <style>
 body{margin:0;font-family:Arial;background:#e6f6ff}
 header{
- background:#4fc3f7;color:white;padding:10px;
- display:flex;justify-content:space-between
+ background:#0288d1;color:white;padding:10px;
+ display:flex;justify-content:space-between;
+ box-shadow:0 2px 6px rgba(0,0,0,.2)
 }
 #layout{display:flex;height:calc(100vh - 50px)}
 #menu{
- width:200px;background:#d9f1ff;padding:10px
+ width:220px;background:#e1f5fe;padding:10px;
+ box-shadow:2px 0 6px rgba(0,0,0,.1)
 }
 #menu button{
- width:100%;margin-bottom:6px;padding:8px;cursor:pointer
+ width:100%;margin-bottom:6px;padding:10px;
+ cursor:pointer;border:none;border-radius:8px;
+ background:#4fc3f7;color:white;font-size:15px
 }
+#menu button:hover{background:#29b6f6}
 #content{flex:1;padding:15px}
 .hidden{display:none}
 
 #farm{
  display:grid;
  grid-template-columns:repeat(6,70px);
- gap:8px;
- justify-content:center
+ gap:8px;justify-content:center
 }
 .tile{
  width:70px;height:70px;
- background:#b3e5fc;
- border-radius:10px;
- display:flex;
- flex-direction:column;
- align-items:center;
- justify-content:center;
- cursor:pointer
+ border-radius:12px;
+ display:flex;flex-direction:column;
+ align-items:center;justify-content:center;
+ cursor:pointer;font-size:22px;
+ background:#b3e5fc
 }
 .free{background:#a5d6a7}
 .frozen{background:#cfd8dc}
 .timer{font-size:11px}
 
 .card{
- background:white;
- padding:10px;
- border-radius:10px;
- margin-bottom:10px;
+ background:white;padding:12px;
+ border-radius:12px;
+ box-shadow:0 2px 6px rgba(0,0,0,.15);
+ margin-bottom:10px
+}
+
+.npc{
+ font-size:40px;cursor:pointer;
+ margin:10px
+}
+
+/* dialog */
+#dialog{
+ position:fixed;inset:0;
+ background:rgba(0,0,0,.5);
+ display:flex;align-items:center;justify-content:center;
+}
+#dialogBox{
+ background:white;padding:20px;
+ border-radius:12px;width:300px;
 }
 </style>
 </head>
@@ -87,6 +105,7 @@ header{
 <div id="marketView" class="hidden">
  <h2>Market</h2>
  <div class="card">
+  <div class="npc" onclick="talk('merchant')">🐧</div>
   <p>Vânzare automată la recoltare</p>
   <button onclick="upgradeFarm()">⬆️ Upgrade fermă (100)</button>
  </div>
@@ -96,9 +115,18 @@ header{
 <div id="missionsView" class="hidden">
  <h2>Misiune activă</h2>
  <div id="missionBox" class="card"></div>
+ <div class="npc" onclick="talk('bear')">🐻</div>
 </div>
 
 </main>
+</div>
+
+<!-- DIALOG -->
+<div id="dialog" class="hidden">
+ <div id="dialogBox">
+  <p id="dialogText"></p>
+  <button onclick="closeDialog()">OK</button>
+ </div>
 </div>
 
 <script>
@@ -124,7 +152,6 @@ let selectedCrop="carrot";
 let penguinPos=7;
 let FREE=[7,8,13,14];
 let tiles={};
-let farmLevel=1;
 
 const crops={
  carrot:{emoji:"🥕",time:10000,profit:5,cost:1},
@@ -132,26 +159,14 @@ const crops={
  flower:{emoji:"🌼",time:30000,profit:40,cost:5}
 };
 
-/* ====== MISIUNI ÎN LANȚ ====== */
+/* ====== MISIUNI ====== */
 const missionChain=[
- {
-  text:"Plantează și recoltează 3 morcovi",
-  check:()=>countHarvest("carrot")>=3,
-  reward:{money:30,xp:20,tiles:1}
- },
- {
-  text:"Ajungi la 100 bani",
-  check:()=>money>=100,
-  reward:{money:0,xp:50,tiles:2}
- },
- {
-  text:"Sparge 2 bucăți de gheață",
-  check:()=>FREE.length>=6,
-  reward:{money:50,xp:30,tiles:0}
- }
+ {text:"Recoltează 3 morcovi",check:()=>harvested>=3,reward:30},
+ {text:"Ajungi la 100 bani",check:()=>money>=100,reward:50},
+ {text:"Sparge 2 bucăți de gheață",check:()=>FREE.length>=6,reward:60}
 ];
 let missionIndex=0;
-let harvested={};
+let harvested=0;
 
 /* ====== UI ====== */
 function updateUI(){
@@ -209,11 +224,8 @@ function plant(i){
  drawFarm();updateUI();
 }
 function harvest(i){
- const c=crops[tiles[i].type];
- money+=c.profit;xp+=10;
- harvested[crops[tiles[i].type].emoji]=
-  (harvested[crops[tiles[i].type].emoji]||0)+1;
- if(xp>=100){xp=0;level++}
+ money+=crops[tiles[i].type].profit;
+ harvested++;
  delete tiles[i];
  drawFarm();updateUI();
 }
@@ -233,24 +245,34 @@ function upgradeFarm(){
 }
 
 /* ====== MISIUNI ====== */
-function countHarvest(type){
- return harvested[crops[type].emoji]||0;
-}
 function drawMission(){
  const box=document.getElementById("missionBox");
  if(missionIndex>=missionChain.length){
-  box.textContent="🎉 Ai terminat toate misiunile!";
+  box.textContent="🎉 Toate misiunile terminate!";
   return;
  }
  const m=missionChain[missionIndex];
  if(m.check()){
-  money+=m.reward.money;
-  xp+=m.reward.xp;
-  for(let i=0;i<m.reward.tiles;i++)
-   FREE.push(FREE.length+10);
+  money+=m.reward;
   missionIndex++;
+  openDialog("Misiune terminată! Recompensă: "+m.reward+" 💰");
  }
  box.textContent=m.text;
+}
+
+/* ====== DIALOG ====== */
+function talk(type){
+ if(type==="merchant")
+  openDialog("Salut! Vinde legume și fă upgrade la fermă!");
+ if(type==="bear")
+  openDialog("🐻 Ursul polar: Ajută pinguinii și vei fi răsplătit!");
+}
+function openDialog(text){
+ document.getElementById("dialogText").textContent=text;
+ document.getElementById("dialog").classList.remove("hidden");
+}
+function closeDialog(){
+ document.getElementById("dialog").classList.add("hidden");
 }
 
 /* ====== START ====== */
