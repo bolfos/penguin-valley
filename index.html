@@ -2,58 +2,31 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<title>Penguin Farmer MMO</title>
-
+<title>Penguin Farmer – Login Test</title>
 <style>
-*{box-sizing:border-box}
 body{
- margin:0;font-family:Trebuchet MS,Arial;
- background:linear-gradient(#b3e5fc,#e0f7fa)
-}
-.hidden{display:none}
-button{cursor:pointer;border:none}
-
-#login{
- position:fixed;inset:0;
+ font-family:Arial;
+ background:#e3f2fd;
  display:flex;align-items:center;justify-content:center;
- background:linear-gradient(#90caf9,#e3f2fd)
+ height:100vh
 }
-#loginBox{
+#box{
  background:white;padding:20px;width:300px;
- border-radius:16px;text-align:center
+ border-radius:12px;text-align:center
 }
-input{
- width:100%;padding:8px;margin-bottom:10px
-}
-#topbar{
- height:56px;background:#0d47a1;color:white;
- display:flex;align-items:center;justify-content:space-between;
- padding:0 16px;font-size:18px
-}
+input{width:100%;padding:8px;margin-bottom:10px}
+button{padding:10px;width:100%}
+#msg{margin-top:10px;color:red}
 </style>
 </head>
-
 <body>
 
-<div id="login">
- <div id="loginBox">
-  <h2>🐧 Penguin Farmer</h2>
-  <input id="emailInput" placeholder="Email">
-  <input id="passInput" type="password" placeholder="Parolă">
-  <button id="loginBtn"
-   style="width:100%;padding:10px;background:#1976d2;color:white;border-radius:12px">
-   Intră / Creează cont
-  </button>
-  <p id="loginMsg"></p>
- </div>
-</div>
-
-<div id="game" class="hidden">
- <div id="topbar">
-  <div>🐧 Penguin Farmer</div>
-  <div id="stats"></div>
- </div>
- <h2 style="padding:20px">✅ Login reușit! Jocul va continua aici.</h2>
+<div id="box">
+ <h2>🐧 Login Test</h2>
+ <input id="email" placeholder="Email">
+ <input id="pass" type="password" placeholder="Parolă">
+ <button id="btn">Login / Register</button>
+ <div id="msg"></div>
 </div>
 
 <script type="module">
@@ -61,56 +34,38 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebas
 import {
  getAuth,
  signInWithEmailAndPassword,
- createUserWithEmailAndPassword,
- onAuthStateChanged
+ createUserWithEmailAndPassword
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
 const firebaseConfig={
  apiKey:"AIzaSyBSzq_-8WZ7xSqPqUd1nr_p4mNoHdFaZ3w",
  authDomain:"penguin-valley-9d490.firebaseapp.com",
  projectId:"penguin-valley-9d490",
- storageBucket:"penguin-valley-9d490.firebasestorage.app",
- messagingSenderId:"399240782858",
  appId:"1:399240782858:web:1d79355154b8be1ed3ebf3"
 };
 
 const app=initializeApp(firebaseConfig);
 const auth=getAuth();
 
-/* ELEMENTE */
-const emailEl=document.getElementById("emailInput");
-const passEl=document.getElementById("passInput");
-const loginBtn=document.getElementById("loginBtn");
-const loginMsg=document.getElementById("loginMsg");
-const loginBox=document.getElementById("login");
-const game=document.getElementById("game");
-
-/* LOGIN / REGISTER */
-loginBtn.addEventListener("click", async ()=>{
- const email=emailEl.value.trim();
- const pass=passEl.value.trim();
- if(!email || !pass){
-  loginMsg.textContent="Completează email și parolă";
-  return;
- }
+const msg=document.getElementById("msg");
+btn.onclick=async()=>{
+ msg.textContent="Se încearcă autentificarea...";
  try{
-  await signInWithEmailAndPassword(auth,email,pass);
- }catch{
+  await signInWithEmailAndPassword(auth,email.value,pass.value);
+  msg.style.color="green";
+  msg.textContent="Login reușit ✔️";
+ }catch(e){
+  msg.textContent="Login eșuat, încerc creare cont...";
   try{
-   await createUserWithEmailAndPassword(auth,email,pass);
-  }catch(e){
-   loginMsg.textContent=e.message;
+   await createUserWithEmailAndPassword(auth,email.value,pass.value);
+   msg.style.color="green";
+   msg.textContent="Cont creat ✔️";
+  }catch(err){
+   msg.style.color="red";
+   msg.textContent=err.code;
   }
  }
-});
-
-/* AUTH STATE */
-onAuthStateChanged(auth,user=>{
- if(!user)return;
- loginBox.classList.add("hidden");
- game.classList.remove("hidden");
- stats.textContent="👤 "+user.email;
-});
+};
 </script>
 
 </body>
