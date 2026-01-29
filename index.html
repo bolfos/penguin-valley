@@ -6,108 +6,75 @@
 
 <style>
 *{box-sizing:border-box}
-body{
- margin:0;
- font-family:Verdana,Arial;
- background:linear-gradient(#b3e5fc,#e0f7fa);
-}
-
-/* ===== UI ===== */
+body{margin:0;font-family:Verdana;background:linear-gradient(#b3e5fc,#e0f7fa)}
 .hidden{display:none}
 button{cursor:pointer;border:none}
 
-/* TOP BAR */
+/* TOP */
 #topbar{
- height:56px;
- background:#0d47a1;
- color:white;
- display:flex;
- align-items:center;
- justify-content:space-between;
- padding:0 15px;
+ height:56px;background:#0d47a1;color:white;
+ display:flex;align-items:center;justify-content:space-between;padding:0 15px
 }
-#topbar span{margin-left:15px}
 
 /* LAYOUT */
 #layout{display:flex;height:calc(100vh - 56px)}
 #sidebar{
- width:220px;
- background:#bbdefb;
- padding:10px;
+ width:220px;background:#bbdefb;padding:10px
 }
 .sidebtn{
- width:100%;
- margin-bottom:10px;
- padding:14px;
- font-size:16px;
- border-radius:12px;
- background:#1976d2;
- color:white;
- box-shadow:inset 0 -3px 0 rgba(0,0,0,.2);
+ width:100%;margin-bottom:10px;padding:14px;
+ border-radius:12px;background:#1976d2;color:white;font-size:16px
 }
-.sidebtn:hover{background:#1565c0}
-
-#content{
- flex:1;
- padding:15px;
-}
+#content{flex:1;padding:15px}
 
 /* FARM */
 #farm{
- display:grid;
- grid-template-columns:repeat(6,80px);
- gap:10px;
- justify-content:center;
- margin-top:10px;
+ display:grid;grid-template-columns:repeat(6,80px);
+ gap:10px;justify-content:center
 }
 .tile{
- width:80px;height:80px;
- border-radius:14px;
- background:#e0e0e0;
- display:flex;
- flex-direction:column;
- align-items:center;
- justify-content:center;
- font-size:24px;
- box-shadow:0 4px 0 rgba(0,0,0,.15);
+ width:80px;height:80px;border-radius:14px;
+ display:flex;align-items:center;justify-content:center;
+ font-size:24px;background:#e0e0e0
 }
 .free{background:#a5d6a7}
 .frozen{background:#cfd8dc}
-.timer{font-size:11px}
+
+/* MAP */
+#map{
+ display:grid;
+ grid-template-columns:repeat(3,220px);
+ gap:20px;justify-content:center;margin-top:30px
+}
+.zone{
+ background:white;border-radius:16px;padding:20px;
+ text-align:center;box-shadow:0 6px 0 rgba(0,0,0,.2)
+}
+.locked{opacity:.5}
+.zone button{
+ margin-top:10px;padding:10px 16px;
+ background:#1976d2;color:white;border-radius:10px
+}
 
 /* LOGIN */
-#login{
- position:fixed;inset:0;
- display:flex;
- align-items:center;
- justify-content:center;
- background:linear-gradient(#90caf9,#e3f2fd);
-}
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+background:linear-gradient(#90caf9,#e3f2fd)}
 #loginBox{
- background:white;
- padding:20px;
- width:300px;
- border-radius:14px;
- box-shadow:0 8px 20px rgba(0,0,0,.3);
+ background:white;padding:20px;width:300px;border-radius:14px
 }
 
-/* MESSAGE */
+/* MSG */
 #msg{
- position:fixed;
- bottom:15px;
- left:50%;
+ position:fixed;bottom:15px;left:50%;
  transform:translateX(-50%);
- background:#263238;
- color:white;
- padding:10px 16px;
- border-radius:20px;
+ background:#263238;color:white;
+ padding:10px 16px;border-radius:20px
 }
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
 <div id="login">
  <div id="loginBox">
   <h2>🐧 Penguin Farmer</h2>
@@ -119,7 +86,6 @@ button{cursor:pointer;border:none}
  </div>
 </div>
 
-<!-- GAME -->
 <div id="game" class="hidden">
 <div id="topbar">
  <div>🐧 Penguin Farmer</div>
@@ -130,12 +96,11 @@ button{cursor:pointer;border:none}
 <div id="sidebar">
  <button class="sidebtn" onclick="show('farmView')">🌾 Fermă</button>
  <button class="sidebtn" onclick="show('mapView')">🗺️ Hartă</button>
- <button class="sidebtn" onclick="show('marketView')">🏪 Market</button>
- <button class="sidebtn" onclick="show('missionsView')">📜 Misiuni</button>
 </div>
 
 <div id="content">
 
+<!-- FARM -->
 <div id="farmView">
  <h2>Ferma ta</h2>
  <button onclick="selectCrop('carrot')">🥕</button>
@@ -144,20 +109,10 @@ button{cursor:pointer;border:none}
  <div id="farm"></div>
 </div>
 
+<!-- MAP -->
 <div id="mapView" class="hidden">
  <h2>Harta Lumii</h2>
- <p>❄️ Nordul Înghețat – 🔒</p>
- <p>🏙️ South Poleville – activ</p>
-</div>
-
-<div id="marketView" class="hidden">
- <h2>Market</h2>
- <button onclick="upgradeFarm()">⬆️ Dezgheață teren (100)</button>
-</div>
-
-<div id="missionsView" class="hidden">
- <h2>Misiune</h2>
- <div id="missionText"></div>
+ <div id="map"></div>
 </div>
 
 </div>
@@ -172,16 +127,15 @@ button{cursor:pointer;border:none}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-/* CONFIG FIREBASE */
+/* FIREBASE CONFIG */
 firebase.initializeApp({
  apiKey:"API_KEY",
  authDomain:"PROJECT.firebaseapp.com",
  projectId:"PROJECT"
 });
-
 const authF=firebase.auth(),db=firebase.firestore();
 
-/* UI MSG */
+/* MSG */
 function msg(t){
  const m=document.getElementById("msg");
  m.textContent=t;m.classList.remove("hidden");
@@ -202,41 +156,84 @@ authF.onAuthStateChanged(u=>{
 });
 
 /* GAME DATA */
-let user,money=10,tiles={},FREE=[7,8,13,14],selectedCrop="carrot";
+let user,money=20,level=1;
+let FREE=[7,8,13,14],tiles={},selectedCrop="carrot";
+let unlockedZones=["farm"];
+
 const crops={
  carrot:{emoji:"🥕",time:8000,profit:5,cost:1},
  cabbage:{emoji:"🥬",time:15000,profit:15,cost:3},
  flower:{emoji:"🌼",time:25000,profit:40,cost:5}
 };
 
-/* SAVE */
-function save(){db.collection("users").doc(user).set({money,tiles,FREE})}
+const zones=[
+ {id:"farm",name:"🌾 Ferma",cost:0},
+ {id:"city",name:"🏙️ South Poleville",cost:50},
+ {id:"north",name:"❄️ Nord Înghețat",cost:150},
+ {id:"jungle",name:"🌴 Jungle",cost:300},
+ {id:"desert",name:"🏜️ Deșert",cost:500}
+];
+
+/* SAVE / LOAD */
+function save(){
+ db.collection("users").doc(user).set({
+  money,level,FREE,tiles,unlockedZones
+ });
+}
 function load(){
  db.collection("users").doc(user).get().then(d=>{
   if(!d.exists)return;
-  money=d.data().money;tiles=d.data().tiles;FREE=d.data().FREE;
+  Object.assign(window,d.data());
  });
 }
 
 /* UI */
-function update(){stats.textContent=`💰 ${money}`;save()}
+function update(){
+ stats.textContent=`💰 ${money} | ⭐ ${level}`;
+ save();
+}
 function show(id){
- ["farmView","mapView","marketView","missionsView"]
- .forEach(v=>document.getElementById(v).classList.add("hidden"));
+ ["farmView","mapView"].forEach(v=>document.getElementById(v).classList.add("hidden"));
  document.getElementById(id).classList.remove("hidden");
+ if(id==="mapView")drawMap();
+}
+
+/* MAP */
+function drawMap(){
+ map.innerHTML="";
+ zones.forEach(z=>{
+  const d=document.createElement("div");
+  d.className="zone";
+  const unlocked=unlockedZones.includes(z.id);
+  if(!unlocked)d.classList.add("locked");
+  d.innerHTML=`<h3>${z.name}</h3>
+   <p>${unlocked?"Deblocată":"Cost: "+z.cost}</p>`;
+  const b=document.createElement("button");
+  b.textContent=unlocked?"Intră":"Deblochează";
+  b.onclick=()=>unlockZone(z);
+  d.appendChild(b);
+  map.appendChild(d);
+ });
+}
+function unlockZone(z){
+ if(unlockedZones.includes(z.id))return msg("Zona activă");
+ if(money<z.cost)return msg("Bani insuficienți");
+ money-=z.cost;
+ unlockedZones.push(z.id);
+ update();drawMap();
 }
 
 /* FARM */
-function draw(){
+function drawFarm(){
  farm.innerHTML="";
  for(let i=0;i<36;i++){
-  let t=document.createElement("div");
+  const t=document.createElement("div");
   t.className="tile";
   if(!FREE.includes(i)){
    t.classList.add("frozen");
    t.textContent="❄️";
    t.onclick=()=>money<20?msg("Nu ai bani"):(
-    money-=20,FREE.push(i),update(),draw()
+    money-=20,FREE.push(i),update(),drawFarm()
    );
   }else if(!tiles[i]){
    t.classList.add("free");
@@ -244,7 +241,7 @@ function draw(){
   }else{
    const c=crops[tiles[i].t];
    const r=c.time-(Date.now()-tiles[i].d);
-   t.innerHTML=`${c.emoji}<div class="timer">${r<=0?"gata":Math.ceil(r/1000)+"s"}</div>`;
+   t.textContent=r<=0?c.emoji:"⏳";
    if(r<=0)t.onclick=()=>harvest(i);
   }
   farm.appendChild(t);
@@ -257,19 +254,19 @@ function plant(i){
  const c=crops[selectedCrop];
  if(money<c.cost)return msg("Bani insuficienți");
  money-=c.cost;tiles[i]={t:selectedCrop,d:Date.now()};
- update();draw();
+ update();drawFarm();
 }
 function harvest(i){
  money+=crops[tiles[i].t].profit;
- delete tiles[i];update();draw();
-}
-function upgradeFarm(){
- if(money<100)return msg("Nu ai bani");
- money-=100;FREE.push(FREE.length+10);
- update();draw();
+ delete tiles[i];
+ if(money>100)level=2;
+ update();drawFarm();
 }
 
-function start(){draw();update();setInterval(draw,1000)}
+function start(){
+ drawFarm();update();
+ setInterval(drawFarm,1000);
+}
 </script>
 
 </body>
