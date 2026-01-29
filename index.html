@@ -5,62 +5,137 @@
 <title>Penguin Farmer</title>
 
 <style>
-body{margin:0;font-family:Arial;background:#e6f6ff}
-.hidden{display:none}
-button{cursor:pointer}
-#msg{position:fixed;bottom:10px;left:50%;transform:translateX(-50%);
-background:#333;color:#fff;padding:8px 14px;border-radius:8px;opacity:.9}
+*{box-sizing:border-box}
+body{
+ margin:0;
+ font-family:Verdana,Arial;
+ background:linear-gradient(#b3e5fc,#e0f7fa);
+}
 
-/* LOGIN */
-#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-background:linear-gradient(#81d4fa,#e6f6ff)}
-#loginBox{background:white;padding:20px;border-radius:12px;width:300px}
-#loginBox input{width:100%;margin-bottom:10px;padding:8px}
+/* ===== UI ===== */
+.hidden{display:none}
+button{cursor:pointer;border:none}
+
+/* TOP BAR */
+#topbar{
+ height:56px;
+ background:#0d47a1;
+ color:white;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ padding:0 15px;
+}
+#topbar span{margin-left:15px}
 
 /* LAYOUT */
-header{background:#0288d1;color:white;padding:10px;display:flex;justify-content:space-between}
-#layout{display:flex;height:calc(100vh - 50px)}
-#menu{width:220px;background:#e1f5fe;padding:10px}
-#menu button{width:100%;margin-bottom:6px;padding:10px;border:none;border-radius:8px;
-background:#4fc3f7;color:white}
-#content{flex:1;padding:15px}
+#layout{display:flex;height:calc(100vh - 56px)}
+#sidebar{
+ width:220px;
+ background:#bbdefb;
+ padding:10px;
+}
+.sidebtn{
+ width:100%;
+ margin-bottom:10px;
+ padding:14px;
+ font-size:16px;
+ border-radius:12px;
+ background:#1976d2;
+ color:white;
+ box-shadow:inset 0 -3px 0 rgba(0,0,0,.2);
+}
+.sidebtn:hover{background:#1565c0}
+
+#content{
+ flex:1;
+ padding:15px;
+}
 
 /* FARM */
-#farm{display:grid;grid-template-columns:repeat(6,70px);gap:8px;justify-content:center}
-.tile{width:70px;height:70px;border-radius:12px;display:flex;flex-direction:column;
-align-items:center;justify-content:center;font-size:22px;background:#b3e5fc}
+#farm{
+ display:grid;
+ grid-template-columns:repeat(6,80px);
+ gap:10px;
+ justify-content:center;
+ margin-top:10px;
+}
+.tile{
+ width:80px;height:80px;
+ border-radius:14px;
+ background:#e0e0e0;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ font-size:24px;
+ box-shadow:0 4px 0 rgba(0,0,0,.15);
+}
 .free{background:#a5d6a7}
 .frozen{background:#cfd8dc}
 .timer{font-size:11px}
+
+/* LOGIN */
+#login{
+ position:fixed;inset:0;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ background:linear-gradient(#90caf9,#e3f2fd);
+}
+#loginBox{
+ background:white;
+ padding:20px;
+ width:300px;
+ border-radius:14px;
+ box-shadow:0 8px 20px rgba(0,0,0,.3);
+}
+
+/* MESSAGE */
+#msg{
+ position:fixed;
+ bottom:15px;
+ left:50%;
+ transform:translateX(-50%);
+ background:#263238;
+ color:white;
+ padding:10px 16px;
+ border-radius:20px;
+}
 </style>
 </head>
 
 <body>
 
+<!-- LOGIN -->
 <div id="login">
  <div id="loginBox">
-  <h3>🐧 Penguin Farmer</h3>
-  <input id="email" placeholder="Email">
-  <input id="pass" type="password" placeholder="Parolă">
-  <button onclick="auth()">Intră / Creează cont</button>
+  <h2>🐧 Penguin Farmer</h2>
+  <input id="email" placeholder="Email" style="width:100%;margin-bottom:10px;padding:8px">
+  <input id="pass" type="password" placeholder="Parolă" style="width:100%;margin-bottom:10px;padding:8px">
+  <button onclick="auth()" style="width:100%;padding:10px;background:#1976d2;color:white;border-radius:10px">
+   Intră / Creează cont
+  </button>
  </div>
 </div>
 
+<!-- GAME -->
 <div id="game" class="hidden">
-<header>
+<div id="topbar">
  <div>🐧 Penguin Farmer</div>
  <div id="stats"></div>
-</header>
+</div>
 
 <div id="layout">
-<aside id="menu">
- <button onclick="show('farmView')">🌾 Fermă</button>
- <button onclick="show('mapView')">🗺️ Hartă</button>
- <button onclick="show('marketView')">🏪 Market</button>
- <button onclick="show('missionsView')">📜 Misiune</button>
-</aside>
+<div id="sidebar">
+ <button class="sidebtn" onclick="show('farmView')">🌾 Fermă</button>
+ <button class="sidebtn" onclick="show('mapView')">🗺️ Hartă</button>
+ <button class="sidebtn" onclick="show('marketView')">🏪 Market</button>
+ <button class="sidebtn" onclick="show('missionsView')">📜 Misiuni</button>
+</div>
 
-<main id="content">
+<div id="content">
+
 <div id="farmView">
  <h2>Ferma ta</h2>
  <button onclick="selectCrop('carrot')">🥕</button>
@@ -69,17 +144,23 @@ align-items:center;justify-content:center;font-size:22px;background:#b3e5fc}
  <div id="farm"></div>
 </div>
 
-<div id="mapView" class="hidden"><h2>Hartă</h2><p>Zone viitoare 🔒</p></div>
+<div id="mapView" class="hidden">
+ <h2>Harta Lumii</h2>
+ <p>❄️ Nordul Înghețat – 🔒</p>
+ <p>🏙️ South Poleville – activ</p>
+</div>
+
 <div id="marketView" class="hidden">
  <h2>Market</h2>
- <button onclick="upgradeFarm()">⬆️ Upgrade fermă (100)</button>
+ <button onclick="upgradeFarm()">⬆️ Dezgheață teren (100)</button>
 </div>
 
 <div id="missionsView" class="hidden">
  <h2>Misiune</h2>
- <div id="mission"></div>
+ <div id="missionText"></div>
 </div>
-</main>
+
+</div>
 </div>
 </div>
 
@@ -91,17 +172,16 @@ align-items:center;justify-content:center;font-size:22px;background:#b3e5fc}
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script>
-/* 🔥 FIREBASE CONFIG – ÎNLOCUIEȘTI CU AL TĂU */
+/* CONFIG FIREBASE */
 firebase.initializeApp({
- apiKey: "API_KEY",
- authDomain: "PROJECT.firebaseapp.com",
- projectId: "PROJECT"
+ apiKey:"API_KEY",
+ authDomain:"PROJECT.firebaseapp.com",
+ projectId:"PROJECT"
 });
 
-const authF=firebase.auth();
-const db=firebase.firestore();
+const authF=firebase.auth(),db=firebase.firestore();
 
-/* UTIL */
+/* UI MSG */
 function msg(t){
  const m=document.getElementById("msg");
  m.textContent=t;m.classList.remove("hidden");
@@ -110,9 +190,8 @@ function msg(t){
 
 /* AUTH */
 function auth(){
- const e=email.value,p=pass.value;
- authF.signInWithEmailAndPassword(e,p)
- .catch(()=>authF.createUserWithEmailAndPassword(e,p));
+ authF.signInWithEmailAndPassword(email.value,pass.value)
+ .catch(()=>authF.createUserWithEmailAndPassword(email.value,pass.value));
 }
 authF.onAuthStateChanged(u=>{
  if(!u)return;
@@ -124,11 +203,13 @@ authF.onAuthStateChanged(u=>{
 
 /* GAME DATA */
 let user,money=10,tiles={},FREE=[7,8,13,14],selectedCrop="carrot";
-const crops={carrot:{emoji:"🥕",time:8000,profit:5,cost:1},
-cabbage:{emoji:"🥬",time:15000,profit:15,cost:3},
-flower:{emoji:"🌼",time:25000,profit:40,cost:5}};
+const crops={
+ carrot:{emoji:"🥕",time:8000,profit:5,cost:1},
+ cabbage:{emoji:"🥬",time:15000,profit:15,cost:3},
+ flower:{emoji:"🌼",time:25000,profit:40,cost:5}
+};
 
-/* SAVE / LOAD */
+/* SAVE */
 function save(){db.collection("users").doc(user).set({money,tiles,FREE})}
 function load(){
  db.collection("users").doc(user).get().then(d=>{
@@ -152,10 +233,14 @@ function draw(){
   let t=document.createElement("div");
   t.className="tile";
   if(!FREE.includes(i)){
-   t.classList.add("frozen");t.textContent="❄️";
-   t.onclick=()=>{if(money<20)msg("Nu ai destui bani");else{money-=20;FREE.push(i);update();draw();}};
+   t.classList.add("frozen");
+   t.textContent="❄️";
+   t.onclick=()=>money<20?msg("Nu ai bani"):(
+    money-=20,FREE.push(i),update(),draw()
+   );
   }else if(!tiles[i]){
-   t.classList.add("free");t.onclick=()=>plant(i);
+   t.classList.add("free");
+   t.onclick=()=>plant(i);
   }else{
    const c=crops[tiles[i].t];
    const r=c.time-(Date.now()-tiles[i].d);
@@ -179,12 +264,13 @@ function harvest(i){
  delete tiles[i];update();draw();
 }
 function upgradeFarm(){
- if(money<100)return msg("Bani insuficienți");
- money-=100;FREE.push(FREE.length+10);update();draw();
+ if(money<100)return msg("Nu ai bani");
+ money-=100;FREE.push(FREE.length+10);
+ update();draw();
 }
 
-/* START */
 function start(){draw();update();setInterval(draw,1000)}
 </script>
+
 </body>
 </html>
