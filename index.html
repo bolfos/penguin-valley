@@ -128,13 +128,28 @@ background:linear-gradient(#90caf9,#e3f2fd)}
 
 <script>
 /* FIREBASE CONFIG */
-firebase.initializeApp({
- apiKey:"API_KEY",
- authDomain:"PROJECT.firebaseapp.com",
- projectId:"PROJECT"
-});
-const authF=firebase.auth(),db=firebase.firestore();
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
 
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyBSzq_-8WZ7xSqPqUd1nr_p4mNoHdFaZ3w",
+    authDomain: "penguin-valley-9d490.firebaseapp.com",
+    projectId: "penguin-valley-9d490",
+    storageBucket: "penguin-valley-9d490.firebasestorage.app",
+    messagingSenderId: "399240782858",
+    appId: "1:399240782858:web:1d79355154b8be1ed3ebf3",
+    measurementId: "G-89JS2RLYZD"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
 /* MSG */
 function msg(t){
  const m=document.getElementById("msg");
@@ -271,3 +286,4 @@ function start(){
 
 </body>
 </html>
+
