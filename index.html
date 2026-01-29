@@ -6,86 +6,112 @@
 
 <style>
 *{box-sizing:border-box}
-body{margin:0;font-family:Verdana;background:linear-gradient(#b3e5fc,#e0f7fa)}
+body{
+ margin:0;
+ font-family:'Trebuchet MS',Arial;
+ background:linear-gradient(#b3e5fc,#e0f7fa);
+}
 .hidden{display:none}
 button{cursor:pointer;border:none}
 
 /* TOP */
 #topbar{
  height:56px;background:#0d47a1;color:white;
- display:flex;align-items:center;justify-content:space-between;padding:0 15px
+ display:flex;align-items:center;justify-content:space-between;
+ padding:0 16px;font-size:18px
 }
 
 /* LAYOUT */
 #layout{display:flex;height:calc(100vh - 56px)}
 #sidebar{
- width:220px;background:#bbdefb;padding:10px
+ width:220px;background:#bbdefb;padding:12px
 }
 .sidebtn{
  width:100%;margin-bottom:10px;padding:14px;
- border-radius:12px;background:#1976d2;color:white;font-size:16px
+ border-radius:14px;background:#1976d2;
+ color:white;font-size:16px
 }
-#content{flex:1;padding:15px}
+#content{flex:1;padding:16px}
 
 /* FARM */
 #farm{
- display:grid;grid-template-columns:repeat(6,80px);
- gap:10px;justify-content:center
+ display:grid;
+ grid-template-columns:repeat(6,90px);
+ gap:12px;justify-content:center
 }
 .tile{
- width:80px;height:80px;border-radius:14px;
+ width:90px;height:90px;border-radius:16px;
  display:flex;align-items:center;justify-content:center;
- font-size:24px;background:#e0e0e0
+ font-size:26px;
+ box-shadow:0 4px 0 rgba(0,0,0,.25)
 }
 .free{background:#a5d6a7}
 .frozen{background:#cfd8dc}
+.growing{background:#ffe082}
+.ready{background:#81c784}
 
 /* MAP */
 #map{
  display:grid;
  grid-template-columns:repeat(3,220px);
- gap:20px;justify-content:center;margin-top:30px
+ gap:20px;justify-content:center
 }
 .zone{
- background:white;border-radius:16px;padding:20px;
- text-align:center;box-shadow:0 6px 0 rgba(0,0,0,.2)
+ background:white;border-radius:18px;padding:20px;
+ text-align:center;
+ box-shadow:0 6px 0 rgba(0,0,0,.25)
 }
 .locked{opacity:.5}
 .zone button{
  margin-top:10px;padding:10px 16px;
- background:#1976d2;color:white;border-radius:10px
+ background:#1976d2;color:white;border-radius:12px
+}
+
+/* MISSIONS */
+#missionBox{
+ background:white;
+ padding:16px;
+ border-radius:16px;
+ max-width:420px;
+ box-shadow:0 6px 0 rgba(0,0,0,.25)
 }
 
 /* LOGIN */
-#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
-background:linear-gradient(#90caf9,#e3f2fd)}
+#login{
+ position:fixed;inset:0;
+ display:flex;align-items:center;justify-content:center;
+ background:linear-gradient(#90caf9,#e3f2fd)
+}
 #loginBox{
- background:white;padding:20px;width:300px;border-radius:14px
+ background:white;padding:20px;width:300px;
+ border-radius:16px
 }
 
 /* MSG */
 #msg{
- position:fixed;bottom:15px;left:50%;
+ position:fixed;bottom:16px;left:50%;
  transform:translateX(-50%);
  background:#263238;color:white;
- padding:10px 16px;border-radius:20px
+ padding:10px 18px;border-radius:20px
 }
 </style>
 </head>
 
 <body>
 
+<!-- LOGIN -->
 <div id="login">
  <div id="loginBox">
   <h2>🐧 Penguin Farmer</h2>
   <input id="email" placeholder="Email" style="width:100%;margin-bottom:10px;padding:8px">
   <input id="pass" type="password" placeholder="Parolă" style="width:100%;margin-bottom:10px;padding:8px">
-  <button onclick="auth()" style="width:100%;padding:10px;background:#1976d2;color:white;border-radius:10px">
+  <button onclick="loginUser()" style="width:100%;padding:10px;background:#1976d2;color:white;border-radius:12px">
    Intră / Creează cont
   </button>
  </div>
 </div>
 
+<!-- GAME -->
 <div id="game" class="hidden">
 <div id="topbar">
  <div>🐧 Penguin Farmer</div>
@@ -96,6 +122,7 @@ background:linear-gradient(#90caf9,#e3f2fd)}
 <div id="sidebar">
  <button class="sidebtn" onclick="show('farmView')">🌾 Fermă</button>
  <button class="sidebtn" onclick="show('mapView')">🗺️ Hartă</button>
+ <button class="sidebtn" onclick="show('missionView')">📜 Misiuni</button>
 </div>
 
 <div id="content">
@@ -115,173 +142,159 @@ background:linear-gradient(#90caf9,#e3f2fd)}
  <div id="map"></div>
 </div>
 
+<!-- MISSIONS -->
+<div id="missionView" class="hidden">
+ <h2>Misiune curentă</h2>
+ <div id="missionBox"></div>
+</div>
+
 </div>
 </div>
 </div>
 
 <div id="msg" class="hidden"></div>
 
-<!-- FIREBASE -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
-<script>
-/* FIREBASE CONFIG */
+<!-- FIREBASE MODULE -->
 <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged }
+ from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc }
+ from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-analytics.js";
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBSzq_-8WZ7xSqPqUd1nr_p4mNoHdFaZ3w",
-    authDomain: "penguin-valley-9d490.firebaseapp.com",
-    projectId: "penguin-valley-9d490",
-    storageBucket: "penguin-valley-9d490.firebasestorage.app",
-    messagingSenderId: "399240782858",
-    appId: "1:399240782858:web:1d79355154b8be1ed3ebf3",
-    measurementId: "G-89JS2RLYZD"
-  };
+/* CONFIG – EXACT AL TĂU */
+const firebaseConfig={
+ apiKey:"AIzaSyBSzq_-8WZ7xSqPqUd1nr_p4mNoHdFaZ3w",
+ authDomain:"penguin-valley-9d490.firebaseapp.com",
+ projectId:"penguin-valley-9d490",
+ storageBucket:"penguin-valley-9d490.firebasestorage.app",
+ messagingSenderId:"399240782858",
+ appId:"1:399240782858:web:1d79355154b8be1ed3ebf3",
+ measurementId:"G-89JS2RLYZD"
+};
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-/* MSG */
-function msg(t){
- const m=document.getElementById("msg");
- m.textContent=t;m.classList.remove("hidden");
- setTimeout(()=>m.classList.add("hidden"),2000);
-}
+const app=initializeApp(firebaseConfig);
+getAnalytics(app);
+const auth=getAuth();
+const db=getFirestore();
 
-/* AUTH */
-function auth(){
- authF.signInWithEmailAndPassword(email.value,pass.value)
- .catch(()=>authF.createUserWithEmailAndPassword(email.value,pass.value));
-}
-authF.onAuthStateChanged(u=>{
- if(!u)return;
- user=u.uid;
- login.classList.add("hidden");
- game.classList.remove("hidden");
- load();start();
-});
-/* GAME DATA */
-let user,money=20,level=1;
+/* GAME STATE */
+let uid;
+let money=20,level=1;
 let FREE=[7,8,13,14],tiles={},selectedCrop="carrot";
 let unlockedZones=["farm"];
+let missionIndex=0;
 
+/* DATA */
 const crops={
  carrot:{emoji:"🥕",time:8000,profit:5,cost:1},
  cabbage:{emoji:"🥬",time:15000,profit:15,cost:3},
  flower:{emoji:"🌼",time:25000,profit:40,cost:5}
 };
 
-const zones=[
- {id:"farm",name:"🌾 Ferma",cost:0},
- {id:"city",name:"🏙️ South Poleville",cost:50},
- {id:"north",name:"❄️ Nord Înghețat",cost:150},
- {id:"jungle",name:"🌴 Jungle",cost:300},
- {id:"desert",name:"🏜️ Deșert",cost:500}
+const missions=[
+ {text:"Plantează 3 morcovi",check:()=>count("carrot")>=3,reward:20},
+ {text:"Strânge 50 bani",check:()=>money>=50,reward:30},
+ {text:"Plantează 2 flori",check:()=>count("flower")>=2,reward:50}
 ];
 
-/* SAVE / LOAD */
-function save(){
- if(!user) return; // Siguranță: salvează doar dacă e logat
- db.collection("users").doc(user).set({
-  money, level, FREE, tiles, unlockedZones
- }, { merge: true }); // <--- Aceasta este modificarea recomandată
-}
+/* AUTH */
+window.loginUser=()=>{
+ signInWithEmailAndPassword(auth,email.value,pass.value)
+ .catch(()=>createUserWithEmailAndPassword(auth,email.value,pass.value));
+};
 
-function load(){
- if(!user) return;
- db.collection("users").doc(user).get().then(d=>{
-  if(!d.exists) return;
-  Object.assign(window, d.data());
-  // Aici poți adăuga o funcție de update vizual (ex: updateUI())
+onAuthStateChanged(auth,u=>{
+ if(!u)return;
+ uid=u.uid;
+ login.classList.add("hidden");
+ game.classList.remove("hidden");
+ load();start();
+});
+
+/* SAVE / LOAD */
+async function save(){
+ await setDoc(doc(db,"users",uid),{
+  money,level,FREE,tiles,unlockedZones,missionIndex
  });
 }
-
+async function load(){
+ const d=await getDoc(doc(db,"users",uid));
+ if(d.exists())Object.assign(window,d.data());
+}
 
 /* UI */
+function msg(t){
+ msgBox.textContent=t;
+ msgBox.classList.remove("hidden");
+ setTimeout(()=>msgBox.classList.add("hidden"),2000);
+}
 function update(){
  stats.textContent=`💰 ${money} | ⭐ ${level}`;
  save();
 }
-function show(id){
- ["farmView","mapView"].forEach(v=>document.getElementById(v).classList.add("hidden"));
+window.show=id=>{
+ ["farmView","mapView","missionView"].forEach(v=>document.getElementById(v).classList.add("hidden"));
  document.getElementById(id).classList.remove("hidden");
- if(id==="mapView")drawMap();
-}
+ if(id==="missionView")drawMission();
+};
 
-/* MAP */
-function drawMap(){
- map.innerHTML="";
- zones.forEach(z=>{
-  const d=document.createElement("div");
-  d.className="zone";
-  const unlocked=unlockedZones.includes(z.id);
-  if(!unlocked)d.classList.add("locked");
-  d.innerHTML=`<h3>${z.name}</h3>
-   <p>${unlocked?"Deblocată":"Cost: "+z.cost}</p>`;
-  const b=document.createElement("button");
-  b.textContent=unlocked?"Intră":"Deblochează";
-  b.onclick=()=>unlockZone(z);
-  d.appendChild(b);
-  map.appendChild(d);
- });
+/* MISSIONS */
+function drawMission(){
+ const m=missions[missionIndex];
+ if(!m){missionBox.innerHTML="🏆 Toate misiunile terminate!";return;}
+ missionBox.innerHTML=`
+  <p>${m.text}</p>
+  <button onclick="checkMission()">Finalizează</button>
+ `;
 }
-function unlockZone(z){
- if(unlockedZones.includes(z.id))return msg("Zona activă");
- if(money<z.cost)return msg("Bani insuficienți");
- money-=z.cost;
- unlockedZones.push(z.id);
- update();drawMap();
-}
+window.checkMission=()=>{
+ const m=missions[missionIndex];
+ if(!m.check())return alert("Nu e gata!");
+ money+=m.reward;
+ missionIndex++;
+ level++;
+ update();drawMission();
+};
 
 /* FARM */
+function count(t){return Object.values(tiles).filter(x=>x.t===t).length}
 function drawFarm(){
  farm.innerHTML="";
  for(let i=0;i<36;i++){
-  const t=document.createElement("div");
-  t.className="tile";
+  const d=document.createElement("div");
+  d.className="tile";
   if(!FREE.includes(i)){
-   t.classList.add("frozen");
-   t.textContent="❄️";
-   t.onclick=()=>money<20?msg("Nu ai bani"):(
-    money-=20,FREE.push(i),update(),drawFarm()
-   );
+   d.classList.add("frozen");d.textContent="❄️";
+   d.onclick=()=>money<20?0:(money-=20,FREE.push(i),update(),drawFarm());
   }else if(!tiles[i]){
-   t.classList.add("free");
-   t.onclick=()=>plant(i);
+   d.classList.add("free");d.textContent="➕";
+   d.onclick=()=>plant(i);
   }else{
    const c=crops[tiles[i].t];
    const r=c.time-(Date.now()-tiles[i].d);
-   t.textContent=r<=0?c.emoji:"⏳";
-   if(r<=0)t.onclick=()=>harvest(i);
+   d.classList.add(r<=0?"ready":"growing");
+   d.textContent=r<=0?c.emoji:"⏳";
+   if(r<=0)d.onclick=()=>harvest(i);
   }
-  farm.appendChild(t);
+  farm.appendChild(d);
  }
 }
-
-/* ACTIONS */
-function selectCrop(c){selectedCrop=c}
+window.selectCrop=c=>selectedCrop=c;
 function plant(i){
  const c=crops[selectedCrop];
- if(money<c.cost)return msg("Bani insuficienți");
+ if(money<c.cost)return;
  money-=c.cost;tiles[i]={t:selectedCrop,d:Date.now()};
  update();drawFarm();
 }
 function harvest(i){
  money+=crops[tiles[i].t].profit;
  delete tiles[i];
- if(money>100)level=2;
  update();drawFarm();
 }
 
+/* START */
 function start(){
  drawFarm();update();
  setInterval(drawFarm,1000);
@@ -290,5 +303,3 @@ function start(){
 
 </body>
 </html>
-
-
