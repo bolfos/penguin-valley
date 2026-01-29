@@ -6,25 +6,41 @@
 
 <style>
 body{margin:0;font-family:Arial;background:#e6f6ff}
+.hidden{display:none}
+button{cursor:pointer}
+
+/* LOGIN */
+#login{
+ position:fixed;inset:0;
+ background:linear-gradient(#81d4fa,#e6f6ff);
+ display:flex;align-items:center;justify-content:center;
+}
+#loginBox{
+ background:white;padding:20px;
+ border-radius:12px;width:280px;
+ box-shadow:0 4px 10px rgba(0,0,0,.3)
+}
+#loginBox input{
+ width:100%;margin-bottom:10px;padding:8px
+}
+
+/* HEADER */
 header{
  background:#0288d1;color:white;padding:10px;
- display:flex;justify-content:space-between;
- box-shadow:0 2px 6px rgba(0,0,0,.2)
+ display:flex;justify-content:space-between
 }
 #layout{display:flex;height:calc(100vh - 50px)}
 #menu{
- width:220px;background:#e1f5fe;padding:10px;
- box-shadow:2px 0 6px rgba(0,0,0,.1)
+ width:220px;background:#e1f5fe;padding:10px
 }
 #menu button{
  width:100%;margin-bottom:6px;padding:10px;
- cursor:pointer;border:none;border-radius:8px;
- background:#4fc3f7;color:white;font-size:15px
+ border:none;border-radius:8px;
+ background:#4fc3f7;color:white
 }
-#menu button:hover{background:#29b6f6}
 #content{flex:1;padding:15px}
-.hidden{display:none}
 
+/* FARM */
 #farm{
  display:grid;
  grid-template-columns:repeat(6,70px);
@@ -35,39 +51,35 @@ header{
  border-radius:12px;
  display:flex;flex-direction:column;
  align-items:center;justify-content:center;
- cursor:pointer;font-size:22px;
+ font-size:22px;cursor:pointer;
  background:#b3e5fc
 }
 .free{background:#a5d6a7}
 .frozen{background:#cfd8dc}
 .timer{font-size:11px}
 
+/* CARD */
 .card{
  background:white;padding:12px;
- border-radius:12px;
- box-shadow:0 2px 6px rgba(0,0,0,.15);
- margin-bottom:10px
-}
-
-.npc{
- font-size:40px;cursor:pointer;
- margin:10px
-}
-
-/* dialog */
-#dialog{
- position:fixed;inset:0;
- background:rgba(0,0,0,.5);
- display:flex;align-items:center;justify-content:center;
-}
-#dialogBox{
- background:white;padding:20px;
- border-radius:12px;width:300px;
+ border-radius:12px;margin-bottom:10px
 }
 </style>
 </head>
 
 <body>
+
+<!-- LOGIN -->
+<div id="login">
+ <div id="loginBox">
+  <h3>🐧 Penguin Farmer</h3>
+  <input id="email" placeholder="Email">
+  <input id="pass" type="password" placeholder="Parolă">
+  <button onclick="login()">Intră / Creează cont</button>
+ </div>
+</div>
+
+<!-- GAME -->
+<div id="game" class="hidden">
 
 <header>
  <div>🐧 Penguin Farmer</div>
@@ -84,7 +96,6 @@ header{
 
 <main id="content">
 
-<!-- FERMA -->
 <div id="farmView">
  <h2>Ferma ta</h2>
  <button onclick="selectCrop('carrot')">🥕</button>
@@ -93,7 +104,6 @@ header{
  <div id="farm"></div>
 </div>
 
-<!-- HARTĂ -->
 <div id="mapView" class="hidden">
  <h2>Hartă</h2>
  <div class="card">🌾 Ferma – activ</div>
@@ -101,78 +111,77 @@ header{
  <div class="card">🏔️ Nordul Înghețat – 🔒</div>
 </div>
 
-<!-- MARKET -->
 <div id="marketView" class="hidden">
  <h2>Market</h2>
  <div class="card">
-  <div class="npc" onclick="talk('merchant')">🐧</div>
-  <p>Vânzare automată la recoltare</p>
   <button onclick="upgradeFarm()">⬆️ Upgrade fermă (100)</button>
  </div>
 </div>
 
-<!-- MISIUNI -->
 <div id="missionsView" class="hidden">
  <h2>Misiune activă</h2>
  <div id="missionBox" class="card"></div>
- <div class="npc" onclick="talk('bear')">🐻</div>
 </div>
 
 </main>
 </div>
-
-<!-- DIALOG -->
-<div id="dialog" class="hidden">
- <div id="dialogBox">
-  <p id="dialogText"></p>
-  <button onclick="closeDialog()">OK</button>
- </div>
 </div>
 
+<!-- SUNETE -->
+<audio id="sndPlant" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+<audio id="sndHarvest" src="https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3"></audio>
+<audio id="sndMission" src="https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3"></audio>
+
 <script>
+/* ====== LOGIN ====== */
+function login(){
+ const email=document.getElementById("email").value;
+ const pass=document.getElementById("pass").value;
+ if(!email||!pass)return alert("Completează datele");
+ localStorage.setItem("pf_user",email);
+ document.getElementById("login").classList.add("hidden");
+ document.getElementById("game").classList.remove("hidden");
+ load();start();
+}
+
 /* ====== SAVE ====== */
 function save(){
- localStorage.setItem("pf_save",JSON.stringify({
-  money,level,xp,tiles,FREE,penguinPos,missionIndex
+ localStorage.setItem("pf_save_"+user,JSON.stringify({
+  money,level,tiles,FREE,missionIndex
  }));
 }
 function load(){
- const d=JSON.parse(localStorage.getItem("pf_save"));
+ const d=JSON.parse(localStorage.getItem("pf_save_"+user));
  if(!d)return;
- money=d.money;level=d.level;xp=d.xp;
+ money=d.money;level=d.level;
  tiles=d.tiles;FREE=d.FREE;
- penguinPos=d.penguinPos;
  missionIndex=d.missionIndex;
 }
 
 /* ====== DATE ====== */
-const GRID=6;
-let money=10,level=1,xp=0;
+let user=localStorage.getItem("pf_user");
+let money=10,level=1;
 let selectedCrop="carrot";
-let penguinPos=7;
 let FREE=[7,8,13,14];
 let tiles={};
+let missionIndex=0;
 
 const crops={
- carrot:{emoji:"🥕",time:10000,profit:5,cost:1},
- cabbage:{emoji:"🥬",time:20000,profit:15,cost:3},
- flower:{emoji:"🌼",time:30000,profit:40,cost:5}
+ carrot:{emoji:"🥕",time:8000,profit:5,cost:1},
+ cabbage:{emoji:"🥬",time:15000,profit:15,cost:3},
+ flower:{emoji:"🌼",time:25000,profit:40,cost:5}
 };
 
-/* ====== MISIUNI ====== */
-const missionChain=[
- {text:"Recoltează 3 morcovi",check:()=>harvested>=3,reward:30},
- {text:"Ajungi la 100 bani",check:()=>money>=100,reward:50},
- {text:"Sparge 2 bucăți de gheață",check:()=>FREE.length>=6,reward:60}
+const missions=[
+ {text:"Recoltează 3 plante",check:()=>harvested>=3,reward:30},
+ {text:"Ajungi la 100 bani",check:()=>money>=100,reward:50}
 ];
-let missionIndex=0;
 let harvested=0;
 
 /* ====== UI ====== */
 function updateUI(){
- document.getElementById("stats").textContent=`💰 ${money} | ⭐ ${level}`;
- drawMission();
- save();
+ document.getElementById("stats").textContent=`👤 ${user} | 💰 ${money} | ⭐ ${level}`;
+ drawMission();save();
 }
 function show(id){
  ["farmView","mapView","marketView","missionsView"]
@@ -184,31 +193,24 @@ function show(id){
 const farm=document.getElementById("farm");
 function drawFarm(){
  farm.innerHTML="";
- for(let i=0;i<GRID*GRID;i++){
+ for(let i=0;i<36;i++){
   const t=document.createElement("div");
   t.className="tile";
-
   if(!FREE.includes(i)){
-   t.classList.add("frozen");
-   t.textContent="❄️";
+   t.classList.add("frozen");t.textContent="❄️";
    t.onclick=()=>breakIce(i);
    farm.appendChild(t);continue;
   }
-
   t.classList.add("free");
-  const isPeng=i===penguinPos;
-
   if(!tiles[i]){
-   t.textContent=isPeng?"🐧":"";
    t.onclick=()=>plant(i);
   }else{
    const c=crops[tiles[i].type];
-   const el=Date.now()-tiles[i].plantedAt;
+   const el=Date.now()-tiles[i].time;
    const r=Math.max(0,Math.ceil((c.time-el)/1000));
    const ready=el>=c.time;
-   t.innerHTML=`<div>${c.emoji}${isPeng?"🐧":""}</div>
-                <div class="timer">${ready?"gata":r+"s"}</div>`;
-   t.onclick=ready?()=>harvest(i):()=>movePenguin(i);
+   t.innerHTML=`${c.emoji}<div class="timer">${ready?"gata":r+"s"}</div>`;
+   t.onclick=ready?()=>harvest(i):null;
   }
   farm.appendChild(t);
  }
@@ -220,13 +222,15 @@ function plant(i){
  const c=crops[selectedCrop];
  if(money<c.cost||tiles[i])return;
  money-=c.cost;
- tiles[i]={type:selectedCrop,plantedAt:Date.now()};
+ tiles[i]={type:selectedCrop,time:Date.now()};
+ document.getElementById("sndPlant").play();
  drawFarm();updateUI();
 }
 function harvest(i){
  money+=crops[tiles[i].type].profit;
  harvested++;
  delete tiles[i];
+ document.getElementById("sndHarvest").play();
  drawFarm();updateUI();
 }
 function breakIce(i){
@@ -234,7 +238,6 @@ function breakIce(i){
  money-=20;FREE.push(i);
  drawFarm();updateUI();
 }
-function movePenguin(i){penguinPos=i;drawFarm()}
 
 /* ====== MARKET ====== */
 function upgradeFarm(){
@@ -247,39 +250,30 @@ function upgradeFarm(){
 /* ====== MISIUNI ====== */
 function drawMission(){
  const box=document.getElementById("missionBox");
- if(missionIndex>=missionChain.length){
+ if(missionIndex>=missions.length){
   box.textContent="🎉 Toate misiunile terminate!";
   return;
  }
- const m=missionChain[missionIndex];
+ const m=missions[missionIndex];
  if(m.check()){
   money+=m.reward;
   missionIndex++;
-  openDialog("Misiune terminată! Recompensă: "+m.reward+" 💰");
+  document.getElementById("sndMission").play();
  }
  box.textContent=m.text;
 }
 
-/* ====== DIALOG ====== */
-function talk(type){
- if(type==="merchant")
-  openDialog("Salut! Vinde legume și fă upgrade la fermă!");
- if(type==="bear")
-  openDialog("🐻 Ursul polar: Ajută pinguinii și vei fi răsplătit!");
-}
-function openDialog(text){
- document.getElementById("dialogText").textContent=text;
- document.getElementById("dialog").classList.remove("hidden");
-}
-function closeDialog(){
- document.getElementById("dialog").classList.add("hidden");
+/* ====== START ====== */
+function start(){
+ drawFarm();updateUI();
+ setInterval(drawFarm,1000);
 }
 
-/* ====== START ====== */
-load();
-drawFarm();
-updateUI();
-setInterval(drawFarm,1000);
+if(user){
+ document.getElementById("login").classList.add("hidden");
+ document.getElementById("game").classList.remove("hidden");
+ load();start();
+}
 </script>
 
 </body>
