@@ -169,7 +169,6 @@ authF.onAuthStateChanged(u=>{
  game.classList.remove("hidden");
  load();start();
 });
-
 /* GAME DATA */
 let user,money=20,level=1;
 let FREE=[7,8,13,14],tiles={},selectedCrop="carrot";
@@ -191,16 +190,21 @@ const zones=[
 
 /* SAVE / LOAD */
 function save(){
+ if(!user) return; // Siguranță: salvează doar dacă e logat
  db.collection("users").doc(user).set({
-  money,level,FREE,tiles,unlockedZones
- });
+  money, level, FREE, tiles, unlockedZones
+ }, { merge: true }); // <--- Aceasta este modificarea recomandată
 }
+
 function load(){
+ if(!user) return;
  db.collection("users").doc(user).get().then(d=>{
-  if(!d.exists)return;
-  Object.assign(window,d.data());
+  if(!d.exists) return;
+  Object.assign(window, d.data());
+  // Aici poți adăuga o funcție de update vizual (ex: updateUI())
  });
 }
+
 
 /* UI */
 function update(){
@@ -286,4 +290,5 @@ function start(){
 
 </body>
 </html>
+
 
