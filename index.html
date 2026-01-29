@@ -8,35 +8,13 @@
 *{box-sizing:border-box}
 body{
  margin:0;
- font-family:Arial, Helvetica, sans-serif;
- background:linear-gradient(#b3e5fc,#e0f7fa);
+ font-family:Arial,Helvetica,sans-serif;
+ background:linear-gradient(#b3e5fc,#e0f7fa)
 }
-
-.hidden{display:none}
 button{cursor:pointer}
+.hidden{display:none}
 
-#login{
- position:fixed;
- inset:0;
- display:flex;
- align-items:center;
- justify-content:center;
- background:linear-gradient(#90caf9,#e3f2fd);
-}
-#loginBox{
- background:white;
- padding:20px;
- width:300px;
- border-radius:16px;
- text-align:center;
-}
-
-input{
- width:100%;
- padding:8px;
- margin-bottom:10px;
-}
-
+/* TOP */
 #topbar{
  height:50px;
  background:#0d47a1;
@@ -47,17 +25,13 @@ input{
  padding:0 16px;
 }
 
-#layout{
- display:flex;
- height:calc(100vh - 50px);
-}
-
+/* LAYOUT */
+#layout{display:flex;height:calc(100vh - 50px)}
 #sidebar{
- width:200px;
+ width:210px;
  background:#bbdefb;
  padding:10px;
 }
-
 .sidebtn{
  width:100%;
  padding:12px;
@@ -68,21 +42,18 @@ input{
  border:none;
 }
 
-#content{
- flex:1;
- padding:16px;
-}
+/* CONTENT */
+#content{flex:1;padding:16px}
 
+/* FARM */
 #farm{
  display:grid;
- grid-template-columns:repeat(6,80px);
+ grid-template-columns:repeat(8,80px);
  gap:10px;
  justify-content:center;
 }
-
 .tile{
- width:80px;
- height:80px;
+ width:80px;height:80px;
  border-radius:14px;
  display:flex;
  align-items:center;
@@ -90,18 +61,17 @@ input{
  font-size:26px;
  background:#cfd8dc;
 }
-
 .free{background:#a5d6a7}
 .growing{background:#ffe082}
 .ready{background:#81c784}
 
+/* PANELS */
 .panel{
  background:white;
  padding:16px;
  border-radius:16px;
- max-width:400px;
+ max-width:500px;
 }
-
 .listItem{
  background:#f5f5f5;
  padding:10px;
@@ -115,21 +85,7 @@ input{
 
 <body>
 
-<!-- LOGIN -->
-<div id="login">
- <div id="loginBox">
-  <h2>🐧 Penguin Farmer</h2>
-  <input id="email" placeholder="Email">
-  <input id="pass" type="password" placeholder="Parolă">
-  <button id="loginBtn" style="width:100%;padding:10px;background:#1976d2;color:white;border-radius:12px">
-   Intră / Creează cont
-  </button>
-  <p id="loginMsg"></p>
- </div>
-</div>
-
-<!-- GAME -->
-<div id="game" class="hidden">
+<div id="game">
  <div id="topbar">
   <div>🐧 Penguin Farmer</div>
   <div id="stats"></div>
@@ -138,27 +94,27 @@ input{
  <div id="layout">
   <div id="sidebar">
    <button class="sidebtn" onclick="show('farmView')">🌾 Fermă</button>
-   <button class="sidebtn" onclick="show('inventoryView')">🎒 Inventar</button>
-   <button class="sidebtn" onclick="show('marketView')">🏪 Market</button>
+   <button class="sidebtn" onclick="show('missionView')">📜 Misiuni</button>
+   <button class="sidebtn" onclick="show('buildView')">🏗️ Clădiri</button>
   </div>
 
   <div id="content">
    <div id="farmView">
-    <h2>Ferma</h2>
+    <h2>Harta fermei</h2>
     <button onclick="selectCrop('carrot')">🥕</button>
     <button onclick="selectCrop('cabbage')">🥬</button>
     <button onclick="selectCrop('flower')">🌼</button>
     <div id="farm"></div>
    </div>
 
-   <div id="inventoryView" class="hidden panel">
-    <h2>Inventar</h2>
-    <div id="inventory"></div>
+   <div id="missionView" class="hidden panel">
+    <h2>Misiune</h2>
+    <div id="missionBox"></div>
    </div>
 
-   <div id="marketView" class="hidden panel">
-    <h2>Market</h2>
-    <div id="market"></div>
+   <div id="buildView" class="hidden panel">
+    <h2>Clădiri</h2>
+    <div id="buildings"></div>
    </div>
   </div>
  </div>
@@ -166,12 +122,8 @@ input{
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import {
- getAuth,
- signInWithEmailAndPassword,
- createUserWithEmailAndPassword,
- onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged }
+ from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
 const firebaseConfig={
  apiKey:"AIzaSyBSzq_-8WZ7xSqPqUd1nr_p4mNoHdFaZ3w",
@@ -179,56 +131,53 @@ const firebaseConfig={
  projectId:"penguin-valley-9d490",
  appId:"1:399240782858:web:1d79355154b8be1ed3ebf3"
 };
-
 const app=initializeApp(firebaseConfig);
 const auth=getAuth();
 
-/* LOGIN */
-loginBtn.onclick=async()=>{
- loginMsg.textContent="";
- try{
-  await signInWithEmailAndPassword(auth,email.value,pass.value);
- }catch{
-  await createUserWithEmailAndPassword(auth,email.value,pass.value);
- }
-};
-
-onAuthStateChanged(auth,user=>{
- if(!user)return;
- login.classList.add("hidden");
- game.classList.remove("hidden");
- initGame();
+/* AUTO LOGIN ANONIM */
+signInAnonymously(auth);
+onAuthStateChanged(auth,u=>{
+ if(u) initGame();
 });
 
-/* GAME STATE – START FRESH */
+/* GAME STATE */
 let money=20;
 let selectedCrop="carrot";
 let tiles={};
 let inventory={carrot:0,cabbage:0,flower:0};
-const FREE=[7,8,13,14];
+let level=1;
 
+const FREE=[18,19,20,26,27,28];
 const crops={
  carrot:{emoji:"🥕",time:5000,profit:5,cost:1},
  cabbage:{emoji:"🥬",time:10000,profit:15,cost:3},
  flower:{emoji:"🌼",time:20000,profit:40,cost:5}
 };
 
+/* MISSIONS */
+const missions=[
+ {text:"Plantează 3 morcovi",check:()=>inventory.carrot>=3,reward:20},
+ {text:"Câștigă 50 💰",check:()=>money>=50,reward:30},
+ {text:"Plantează 2 flori",check:()=>inventory.flower>=2,reward:50}
+];
+let missionIndex=0;
+
 /* UI */
 function show(id){
- ["farmView","inventoryView","marketView"].forEach(v=>{
+ ["farmView","missionView","buildView"].forEach(v=>{
   document.getElementById(v).classList.add("hidden");
  });
  document.getElementById(id).classList.remove("hidden");
 }
 
 function updateStats(){
- stats.textContent=`💰 ${money}`;
+ stats.textContent=`💰 ${money} | ⭐ ${level}`;
 }
 
 /* FARM */
 function drawFarm(){
  farm.innerHTML="";
- for(let i=0;i<36;i++){
+ for(let i=0;i<64;i++){
   const d=document.createElement("div");
   d.className="tile";
   if(!FREE.includes(i)){
@@ -247,65 +196,63 @@ function drawFarm(){
   farm.appendChild(d);
  }
 }
-
 function selectCrop(c){selectedCrop=c;}
-
 function plant(i){
  const c=crops[selectedCrop];
  if(money<c.cost)return;
  money-=c.cost;
  tiles[i]={t:selectedCrop,d:Date.now()};
- updateStats();
- drawFarm();
+ updateStats();drawFarm();
 }
-
 function harvest(i){
  inventory[tiles[i].t]++;
  delete tiles[i];
- updateStats();
- drawFarm();
- drawInventory();
- drawMarket();
+ updateStats();drawFarm();drawMission();
 }
 
-/* INVENTORY */
-function drawInventory(){
- inventory.innerHTML="";
- for(const k in inventory){
-  inventory.innerHTML+=`
-   <div class="listItem">${crops[k].emoji} x${inventory[k]}</div>
-  `;
- }
+/* MISSIONS */
+function drawMission(){
+ const m=missions[missionIndex];
+ missionBox.innerHTML=m?
+ `<p>${m.text}</p><button onclick="finishMission()">Finalizează</button>`:
+ "🏆 Toate misiunile terminate!";
 }
+window.finishMission=()=>{
+ const m=missions[missionIndex];
+ if(!m.check())return alert("Nu e gata");
+ money+=m.reward;
+ level++;missionIndex++;
+ updateStats();drawMission();
+};
 
-/* MARKET */
-function drawMarket(){
- market.innerHTML="";
- for(const k in inventory){
-  if(inventory[k]>0){
-   market.innerHTML+=`
-    <div class="listItem">
-     ${crops[k].emoji} +${crops[k].profit} 💰
-     <button onclick="sell('${k}')">Vinde</button>
-    </div>
-   `;
-  }
+/* BUILDINGS */
+const buildingData={
+ barn:{name:"Depozit",cost:30},
+ mill:{name:"Moară",cost:50}
+};
+let buildings={barn:0,mill:0};
+function drawBuildings(){
+ buildings.innerHTML="";
+ for(const k in buildingData){
+  buildings.innerHTML+=`
+   <div class="listItem">
+    ${buildingData[k].name} lvl ${buildings[k]}
+    <button onclick="upgrade('${k}')">Upgrade</button>
+   </div>`;
  }
 }
-window.sell=(k)=>{
- inventory[k]--;
- money+=crops[k].profit;
- updateStats();
- drawInventory();
- drawMarket();
+window.upgrade=k=>{
+ const c=buildingData[k].cost;
+ if(money<c)return;
+ money-=c;buildings[k]++;updateStats();drawBuildings();
 };
 
 /* START */
 function initGame(){
  updateStats();
  drawFarm();
- drawInventory();
- drawMarket();
+ drawMission();
+ drawBuildings();
  setInterval(drawFarm,1000);
 }
 </script>
