@@ -31,8 +31,6 @@ body {
   padding: 10px;
 }
 
-#sidebar h3 { margin-top: 15px; }
-
 #sidebar button {
   width: 100%;
   margin-bottom: 6px;
@@ -55,6 +53,7 @@ body {
   border-radius: 10px;
   background: #b3e5fc;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
@@ -64,7 +63,12 @@ body {
 .tile.free { background: #a5d6a7; }
 .tile.frozen { background: #cfd8dc; }
 
-.hidden { display: none !important; }
+.timer {
+  font-size: 10px;
+  color: #333;
+}
+
+.hidden { display: none; }
 
 .modal {
   position: fixed;
@@ -80,13 +84,6 @@ body {
   background: white;
   padding: 20px;
   border-radius: 10px;
-  min-width: 260px;
-}
-
-.map button {
-  padding: 15px;
-  margin: 10px;
-  font-size: 18px;
 }
 </style>
 </head>
@@ -105,125 +102,47 @@ body {
 <div id="layout">
 
 <aside id="sidebar">
-  <h3>🌍 Navigare</h3>
-  <button onclick="goTo('farm')">🌾 Ferma</button>
-  <button onclick="goTo('map')">🗺️ Hartă</button>
-  <button onclick="goTo('city')">🏘️ Oraș</button>
-
-  <h3>🌱 Culturi</h3>
   <button onclick="selectCrop('carrot')">🥕 Morcov</button>
   <button onclick="selectCrop('cabbage')">🥬 Varză</button>
   <button onclick="selectCrop('flower')">🌼 Floare</button>
-
-  <h3>🏡 Decorațiuni</h3>
-  <button onclick="selectDeco('road')">🟫 Drum</button>
-  <button onclick="selectDeco('pond')">💧 Iaz</button>
 </aside>
 
 <main id="game">
-
-<section id="farmView">
   <h2>🌾 Ferma ta</h2>
   <div id="farm"></div>
-</section>
-
-<section id="mapView" class="hidden">
-  <h2>🗺️ Harta Polarului</h2>
-  <div class="map">
-    <button onclick="goTo('farm')">🌾 Ferma</button>
-    <button onclick="goTo('city')">🏘️ South Poleville</button>
-    <div style="font-size:40px">🐧 🦭 🦊</div>
-  </div>
-</section>
-
-<section id="cityView" class="hidden">
-  <h2>🏘️ South Poleville</h2>
-  <button onclick="openMarket()">🏪 Market</button>
-  <button onclick="openQuests()">📜 Misiuni</button>
-  <button onclick="buyDog()">🐕 Câine (50)</button>
-  <button onclick="buySnowmobile()">🛷 Snowmobile (100)</button>
-</section>
-
 </main>
-</div>
 
-<!-- MARKET -->
-<div id="market" class="modal hidden">
-  <div class="modal-content">
-    <h2>🏪 Market</h2>
-    <div id="inventory"></div>
-    <button onclick="closeMarket()">Închide</button>
-  </div>
-</div>
-
-<!-- QUESTS -->
-<div id="quests" class="modal hidden">
-  <div class="modal-content">
-    <h2>📜 Misiuni</h2>
-    <div id="questList"></div>
-    <button onclick="closeQuests()">Închide</button>
-  </div>
 </div>
 
 <script>
-/* === GAME LOGIC STABIL === */
+/* === DATE === */
 const GRID = 6;
 const farm = document.getElementById("farm");
 const moneyEl = document.getElementById("money");
 const levelEl = document.getElementById("level");
 
-let money = Number(localStorage.getItem("money")) || 10;
-let level = Number(localStorage.getItem("level")) || 1;
-let xp = Number(localStorage.getItem("xp")) || 0;
-let FREE_TILES = JSON.parse(localStorage.getItem("freeTiles")) || [7,8,13,14];
-let tiles = JSON.parse(localStorage.getItem("tiles")) || {};
-let penguinPos = Number(localStorage.getItem("penguinPos")) || 7;
-let inventory = JSON.parse(localStorage.getItem("inventory")) || {};
-let decorationsPlaced = JSON.parse(localStorage.getItem("decorations")) || {};
-let dogs = Number(localStorage.getItem("dogs")) || 0;
-let vehicle = localStorage.getItem("vehicle") || "sled";
-let currentZone = localStorage.getItem("zone") || "farm";
+let money = 10;
+let level = 1;
+let xp = 0;
+
+let FREE_TILES = [7,8,13,14];
+let tiles = {};
+let penguinPos = 7;
+let selectedCrop = "carrot";
 
 const crops = {
-  carrot:{emoji:"🥕",time:60000,profit:5,cost:1,xp:5},
-  cabbage:{emoji:"🥬",time:180000,profit:15,cost:3,xp:15},
-  flower:{emoji:"🌼",time:360000,profit:40,cost:5,xp:30}
+  carrot:{emoji:"🥕",time:10000,profit:5,cost:1},
+  cabbage:{emoji:"🥬",time:20000,profit:15,cost:3},
+  flower:{emoji:"🌼",time:30000,profit:40,cost:5}
 };
 
-const decorations = {
-  road:{emoji:"🟫",cost:5},
-  pond:{emoji:"💧",cost:10}
-};
-
-let selectedCrop="carrot";
-let decoMode=null;
-
-function save(){
-  localStorage.setItem("money",money);
-  localStorage.setItem("level",level);
-  localStorage.setItem("xp",xp);
-  localStorage.setItem("freeTiles",JSON.stringify(FREE_TILES));
-  localStorage.setItem("tiles",JSON.stringify(tiles));
-  localStorage.setItem("penguinPos",penguinPos);
-  localStorage.setItem("inventory",JSON.stringify(inventory));
-  localStorage.setItem("decorations",JSON.stringify(decorationsPlaced));
-  localStorage.setItem("dogs",dogs);
-  localStorage.setItem("vehicle",vehicle);
-  localStorage.setItem("zone",currentZone);
-}
-
+/* === UI === */
 function updateUI(){
   moneyEl.textContent="💰 "+money;
   levelEl.textContent="⭐ Lv "+level;
 }
 
-function getGrowBonus(){
-  let b=1;
-  if(dogs>0)b-=0.1;
-  if(vehicle==="snowmobile")b-=0.1;
-  return b;
-}
-
+/* === FARM === */
 function drawFarm(){
   farm.innerHTML="";
   for(let i=0;i<GRID*GRID;i++){
@@ -240,112 +159,79 @@ function drawFarm(){
 
     t.classList.add("free");
 
-    if(decorationsPlaced[i]){
-      t.textContent=decorationsPlaced[i];
-      farm.appendChild(t);
-      continue;
-    }
-
-    const isPenguin=penguinPos===i;
+    const isPenguin = penguinPos === i;
 
     if(!tiles[i]){
-      t.textContent=isPenguin?"🐧":"";
-      t.onclick=()=>plant(i);
+      t.textContent = isPenguin ? "🐧" : "";
+      t.onclick = ()=>plant(i);
     } else {
       const c=crops[tiles[i].type];
-      let elapsed=Date.now()-tiles[i].plantedAt;
-      let grow=c.time*getGrowBonus();
-      let ready=elapsed>=grow;
-      t.textContent=c.emoji+(ready?"":" ⏳")+(isPenguin?" 🐧":"");
-      t.onclick=ready?()=>harvest(i):()=>movePenguin(i);
+      const elapsed = Date.now()-tiles[i].plantedAt;
+      const remaining = Math.max(0, Math.ceil((c.time-elapsed)/1000));
+      const ready = elapsed >= c.time;
+
+      t.innerHTML = `
+        <div>${c.emoji}${isPenguin?" 🐧":""}</div>
+        <div class="timer">${ready?"gata":remaining+"s"}</div>
+      `;
+
+      t.onclick = ready ? ()=>harvest(i) : ()=>movePenguin(i);
     }
     farm.appendChild(t);
   }
 }
 
+/* === ACTIONS === */
 function plant(i){
-  if(decoMode){
-    const d=decorations[decoMode];
-    if(money<d.cost)return;
-    money-=d.cost;
-    decorationsPlaced[i]=d.emoji;
-    decoMode=null;
-    save();updateUI();drawFarm();
-    return;
-  }
   const c=crops[selectedCrop];
-  if(money<c.cost||tiles[i])return;
+  if(money<c.cost || tiles[i]) return;
   money-=c.cost;
   tiles[i]={type:selectedCrop,plantedAt:Date.now()};
-  save();updateUI();drawFarm();
+  updateUI(); drawFarm();
 }
 
 function harvest(i){
   const c=crops[tiles[i].type];
   money+=c.profit;
-  inventory[c.emoji]=(inventory[c.emoji]||0)+1;
-  xp+=c.xp;
-  if(xp>=level*100){xp=0;level++;}
+  xp+=5;
+  if(xp>=100){xp=0;level++;}
   delete tiles[i];
-  save();updateUI();drawFarm();
+  updateUI(); drawFarm();
 }
 
-function movePenguin(i){penguinPos=i;save();drawFarm();}
-function breakIce(i){if(money<20)return;money-=20;FREE_TILES.push(i);save();updateUI();drawFarm();}
-function selectCrop(t){selectedCrop=t;decoMode=null;}
-function selectDeco(d){decoMode=d;selectedCrop=null;}
-
-function goTo(z){
-  currentZone=z;
-  ["farm","map","city"].forEach(v=>{
-    document.getElementById(v+"View").classList.add("hidden");
-  });
-  document.getElementById(z+"View").classList.remove("hidden");
-  document.getElementById("zone").textContent="📍 "+(z==="farm"?"Ferma":z==="map"?"Harta":"Oraș");
-  save();
+function breakIce(i){
+  if(money<20) return;
+  money-=20;
+  FREE_TILES.push(i);
+  updateUI(); drawFarm();
 }
 
-function buyDog(){if(money<50)return;money-=50;dogs++;save();updateUI();}
-function buySnowmobile(){if(money<100)return;money-=100;vehicle="snowmobile";save();updateUI();}
-
-function openMarket(){
-  document.getElementById("inventory").innerHTML="";
-  document.getElementById("market").classList.remove("hidden");
-}
-function closeMarket(){document.getElementById("market").classList.add("hidden");}
-
-const quests=[
-  {text:"Recoltează 3 morcovi",reward:20,done:false},
-  {text:"Câștigă 50 monede",reward:30,done:false}
-];
-
-function openQuests(){
-  const q=document.getElementById("questList");
-  q.innerHTML="";
-  quests.forEach(x=>{
-    const d=document.createElement("div");
-    d.textContent=x.text+(x.done?" ✔":"");
-    const b=document.createElement("button");
-    b.textContent="Finalizează";
-    b.disabled=x.done;
-    b.onclick=()=>{
-      x.done=true;
-      money+=x.reward;
-      save();updateUI();openQuests();
-    };
-    d.appendChild(b);
-    q.appendChild(d);
-  });
-  document.getElementById("quests").classList.remove("hidden");
-}
-function closeQuests(){
-  document.getElementById("quests").classList.add("hidden");
+function movePenguin(i){
+  penguinPos=i;
+  drawFarm();
 }
 
+function selectCrop(c){selectedCrop=c;}
+
+/* === KEYBOARD MOVE === */
+document.addEventListener("keydown",e=>{
+  const row=Math.floor(penguinPos/GRID);
+  const col=penguinPos%GRID;
+  let next=penguinPos;
+
+  if(e.key==="ArrowUp"||e.key==="w") next=(row>0)?penguinPos-GRID:penguinPos;
+  if(e.key==="ArrowDown"||e.key==="s") next=(row<GRID-1)?penguinPos+GRID:penguinPos;
+  if(e.key==="ArrowLeft"||e.key==="a") next=(col>0)?penguinPos-1:penguinPos;
+  if(e.key==="ArrowRight"||e.key==="d") next=(col<GRID-1)?penguinPos+1:penguinPos;
+
+  if(FREE_TILES.includes(next)) penguinPos=next;
+  drawFarm();
+});
+
+/* === START === */
 updateUI();
-goTo(currentZone);
-setInterval(drawFarm,1000);
 drawFarm();
+setInterval(drawFarm,1000);
 </script>
 
 </body>
