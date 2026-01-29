@@ -7,12 +7,16 @@
 <style>
 body{margin:0;font-family:Arial;background:#e6f6ff}
 header{
-  background:#4fc3f7;color:white;padding:10px;
-  display:flex;justify-content:space-between
+ background:#4fc3f7;color:white;padding:10px;
+ display:flex;justify-content:space-between
 }
 #layout{display:flex;height:calc(100vh - 50px)}
-#menu{width:200px;background:#d9f1ff;padding:10px}
-#menu button{width:100%;margin-bottom:6px;padding:8px;cursor:pointer}
+#menu{
+ width:200px;background:#d9f1ff;padding:10px
+}
+#menu button{
+ width:100%;margin-bottom:6px;padding:8px;cursor:pointer
+}
 #content{flex:1;padding:15px}
 .hidden{display:none}
 
@@ -24,17 +28,24 @@ header{
 }
 .tile{
  width:70px;height:70px;
+ background:#b3e5fc;
  border-radius:10px;
  display:flex;
  flex-direction:column;
  align-items:center;
  justify-content:center;
- cursor:pointer;
- background:#b3e5fc
+ cursor:pointer
 }
 .free{background:#a5d6a7}
 .frozen{background:#cfd8dc}
 .timer{font-size:11px}
+
+.card{
+ background:white;
+ padding:10px;
+ border-radius:10px;
+ margin-bottom:10px;
+}
 </style>
 </head>
 
@@ -46,51 +57,64 @@ header{
 </header>
 
 <div id="layout">
- <aside id="menu">
-  <button onclick="show('farmView')">🌾 Fermă</button>
-  <button onclick="show('cityView')">🏙️ Oraș</button>
-  <button onclick="show('missionsView')">📜 Misiuni</button>
- </aside>
+<aside id="menu">
+ <button onclick="show('farmView')">🌾 Fermă</button>
+ <button onclick="show('mapView')">🗺️ Hartă</button>
+ <button onclick="show('marketView')">🏪 Market</button>
+ <button onclick="show('missionsView')">📜 Misiune</button>
+</aside>
 
- <main id="content">
+<main id="content">
 
-  <div id="farmView">
-   <h2>Ferma ta</h2>
-   <button onclick="selectCrop('carrot')">🥕</button>
-   <button onclick="selectCrop('cabbage')">🥬</button>
-   <button onclick="selectCrop('flower')">🌼</button>
-   <div id="farm"></div>
-  </div>
+<!-- FERMA -->
+<div id="farmView">
+ <h2>Ferma ta</h2>
+ <button onclick="selectCrop('carrot')">🥕</button>
+ <button onclick="selectCrop('cabbage')">🥬</button>
+ <button onclick="selectCrop('flower')">🌼</button>
+ <div id="farm"></div>
+</div>
 
-  <div id="cityView" class="hidden">
-   <h2>Oraș</h2>
-   <button onclick="buyDog()">🐕 Câine (50)</button>
-   <button onclick="buySnowmobile()">🛷 Snowmobile (100)</button>
-   <p id="cityInfo"></p>
-  </div>
+<!-- HARTĂ -->
+<div id="mapView" class="hidden">
+ <h2>Hartă</h2>
+ <div class="card">🌾 Ferma – activ</div>
+ <div class="card">🏙️ Oraș – activ</div>
+ <div class="card">🏔️ Nordul Înghețat – 🔒</div>
+</div>
 
-  <div id="missionsView" class="hidden">
-   <h2>Misiuni</h2>
-   <ul id="missions"></ul>
-  </div>
+<!-- MARKET -->
+<div id="marketView" class="hidden">
+ <h2>Market</h2>
+ <div class="card">
+  <p>Vânzare automată la recoltare</p>
+  <button onclick="upgradeFarm()">⬆️ Upgrade fermă (100)</button>
+ </div>
+</div>
 
- </main>
+<!-- MISIUNI -->
+<div id="missionsView" class="hidden">
+ <h2>Misiune activă</h2>
+ <div id="missionBox" class="card"></div>
+</div>
+
+</main>
 </div>
 
 <script>
-/* ====== SAVE / LOAD ====== */
+/* ====== SAVE ====== */
 function save(){
  localStorage.setItem("pf_save",JSON.stringify({
-  money,level,xp,tiles,FREE,penguinPos,
-  dogs,vehicle,missions
+  money,level,xp,tiles,FREE,penguinPos,missionIndex
  }));
 }
 function load(){
  const d=JSON.parse(localStorage.getItem("pf_save"));
  if(!d)return;
  money=d.money;level=d.level;xp=d.xp;
- tiles=d.tiles;FREE=d.FREE;penguinPos=d.penguinPos;
- dogs=d.dogs;vehicle=d.vehicle;missions=d.missions;
+ tiles=d.tiles;FREE=d.FREE;
+ penguinPos=d.penguinPos;
+ missionIndex=d.missionIndex;
 }
 
 /* ====== DATE ====== */
@@ -100,7 +124,7 @@ let selectedCrop="carrot";
 let penguinPos=7;
 let FREE=[7,8,13,14];
 let tiles={};
-let dogs=0,vehicle="sled";
+let farmLevel=1;
 
 const crops={
  carrot:{emoji:"🥕",time:10000,profit:5,cost:1},
@@ -108,24 +132,36 @@ const crops={
  flower:{emoji:"🌼",time:30000,profit:40,cost:5}
 };
 
-let missions=[
- {text:"Recoltează 3 morcovi",done:false,check:()=>count("carrot")>=3,reward:20},
- {text:"Ajungi la 50 bani",done:false,check:()=>money>=50,reward:30}
+/* ====== MISIUNI ÎN LANȚ ====== */
+const missionChain=[
+ {
+  text:"Plantează și recoltează 3 morcovi",
+  check:()=>countHarvest("carrot")>=3,
+  reward:{money:30,xp:20,tiles:1}
+ },
+ {
+  text:"Ajungi la 100 bani",
+  check:()=>money>=100,
+  reward:{money:0,xp:50,tiles:2}
+ },
+ {
+  text:"Sparge 2 bucăți de gheață",
+  check:()=>FREE.length>=6,
+  reward:{money:50,xp:30,tiles:0}
+ }
 ];
+let missionIndex=0;
+let harvested={};
 
 /* ====== UI ====== */
 function updateUI(){
- document.getElementById("stats").textContent=
-  `💰 ${money} | ⭐ ${level}`;
- document.getElementById("cityInfo").textContent=
-  `🐕 ${dogs} | 🛷 ${vehicle}`;
- renderMissions();
+ document.getElementById("stats").textContent=`💰 ${money} | ⭐ ${level}`;
+ drawMission();
  save();
 }
 function show(id){
- ["farmView","cityView","missionsView"].forEach(v=>{
-  document.getElementById(v).classList.add("hidden");
- });
+ ["farmView","mapView","marketView","missionsView"]
+ .forEach(v=>document.getElementById(v).classList.add("hidden"));
  document.getElementById(id).classList.remove("hidden");
 }
 
@@ -163,7 +199,7 @@ function drawFarm(){
  }
 }
 
-/* ====== ACȚIUNI ====== */
+/* ====== ACTIUNI ====== */
 function selectCrop(c){selectedCrop=c}
 function plant(i){
  const c=crops[selectedCrop];
@@ -175,6 +211,8 @@ function plant(i){
 function harvest(i){
  const c=crops[tiles[i].type];
  money+=c.profit;xp+=10;
+ harvested[crops[tiles[i].type].emoji]=
+  (harvested[crops[tiles[i].type].emoji]||0)+1;
  if(xp>=100){xp=0;level++}
  delete tiles[i];
  drawFarm();updateUI();
@@ -186,32 +224,33 @@ function breakIce(i){
 }
 function movePenguin(i){penguinPos=i;drawFarm()}
 
-/* ====== ORAȘ ====== */
-function buyDog(){
- if(money<50)return;
- money-=50;dogs++;updateUI();
-}
-function buySnowmobile(){
+/* ====== MARKET ====== */
+function upgradeFarm(){
  if(money<100)return;
- money-=100;vehicle="snowmobile";updateUI();
+ money-=100;
+ FREE.push(FREE.length+10);
+ updateUI();drawFarm();
 }
 
 /* ====== MISIUNI ====== */
-function count(type){
- return Object.values(tiles).filter(t=>t.type===type).length;
+function countHarvest(type){
+ return harvested[crops[type].emoji]||0;
 }
-function renderMissions(){
- const ul=document.getElementById("missions");
- ul.innerHTML="";
- missions.forEach(m=>{
-  if(!m.done && m.check()){
-   m.done=true;
-   money+=m.reward;
-  }
-  const li=document.createElement("li");
-  li.textContent=m.text+(m.done?" ✅":"");
-  ul.appendChild(li);
- });
+function drawMission(){
+ const box=document.getElementById("missionBox");
+ if(missionIndex>=missionChain.length){
+  box.textContent="🎉 Ai terminat toate misiunile!";
+  return;
+ }
+ const m=missionChain[missionIndex];
+ if(m.check()){
+  money+=m.reward.money;
+  xp+=m.reward.xp;
+  for(let i=0;i<m.reward.tiles;i++)
+   FREE.push(FREE.length+10);
+  missionIndex++;
+ }
+ box.textContent=m.text;
 }
 
 /* ====== START ====== */
