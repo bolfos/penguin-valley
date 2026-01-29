@@ -2,31 +2,166 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<title>Penguin Farmer – Login Test</title>
+<title>Penguin Farmer</title>
+
 <style>
+*{box-sizing:border-box}
 body{
- font-family:Arial;
- background:#e3f2fd;
- display:flex;align-items:center;justify-content:center;
- height:100vh
+ margin:0;
+ font-family:Arial, Helvetica, sans-serif;
+ background:linear-gradient(#b3e5fc,#e0f7fa);
 }
-#box{
- background:white;padding:20px;width:300px;
- border-radius:12px;text-align:center
+
+.hidden{display:none}
+button{cursor:pointer}
+
+#login{
+ position:fixed;
+ inset:0;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ background:linear-gradient(#90caf9,#e3f2fd);
 }
-input{width:100%;padding:8px;margin-bottom:10px}
-button{padding:10px;width:100%}
-#msg{margin-top:10px;color:red}
+#loginBox{
+ background:white;
+ padding:20px;
+ width:300px;
+ border-radius:16px;
+ text-align:center;
+}
+
+input{
+ width:100%;
+ padding:8px;
+ margin-bottom:10px;
+}
+
+#topbar{
+ height:50px;
+ background:#0d47a1;
+ color:white;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ padding:0 16px;
+}
+
+#layout{
+ display:flex;
+ height:calc(100vh - 50px);
+}
+
+#sidebar{
+ width:200px;
+ background:#bbdefb;
+ padding:10px;
+}
+
+.sidebtn{
+ width:100%;
+ padding:12px;
+ margin-bottom:8px;
+ border-radius:12px;
+ background:#1976d2;
+ color:white;
+ border:none;
+}
+
+#content{
+ flex:1;
+ padding:16px;
+}
+
+#farm{
+ display:grid;
+ grid-template-columns:repeat(6,80px);
+ gap:10px;
+ justify-content:center;
+}
+
+.tile{
+ width:80px;
+ height:80px;
+ border-radius:14px;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:26px;
+ background:#cfd8dc;
+}
+
+.free{background:#a5d6a7}
+.growing{background:#ffe082}
+.ready{background:#81c784}
+
+.panel{
+ background:white;
+ padding:16px;
+ border-radius:16px;
+ max-width:400px;
+}
+
+.listItem{
+ background:#f5f5f5;
+ padding:10px;
+ margin-bottom:8px;
+ border-radius:12px;
+ display:flex;
+ justify-content:space-between;
+}
 </style>
 </head>
+
 <body>
 
-<div id="box">
- <h2>🐧 Login Test</h2>
- <input id="email" placeholder="Email">
- <input id="pass" type="password" placeholder="Parolă">
- <button id="btn">Login / Register</button>
- <div id="msg"></div>
+<!-- LOGIN -->
+<div id="login">
+ <div id="loginBox">
+  <h2>🐧 Penguin Farmer</h2>
+  <input id="email" placeholder="Email">
+  <input id="pass" type="password" placeholder="Parolă">
+  <button id="loginBtn" style="width:100%;padding:10px;background:#1976d2;color:white;border-radius:12px">
+   Intră / Creează cont
+  </button>
+  <p id="loginMsg"></p>
+ </div>
+</div>
+
+<!-- GAME -->
+<div id="game" class="hidden">
+ <div id="topbar">
+  <div>🐧 Penguin Farmer</div>
+  <div id="stats"></div>
+ </div>
+
+ <div id="layout">
+  <div id="sidebar">
+   <button class="sidebtn" onclick="show('farmView')">🌾 Fermă</button>
+   <button class="sidebtn" onclick="show('inventoryView')">🎒 Inventar</button>
+   <button class="sidebtn" onclick="show('marketView')">🏪 Market</button>
+  </div>
+
+  <div id="content">
+   <div id="farmView">
+    <h2>Ferma</h2>
+    <button onclick="selectCrop('carrot')">🥕</button>
+    <button onclick="selectCrop('cabbage')">🥬</button>
+    <button onclick="selectCrop('flower')">🌼</button>
+    <div id="farm"></div>
+   </div>
+
+   <div id="inventoryView" class="hidden panel">
+    <h2>Inventar</h2>
+    <div id="inventory"></div>
+   </div>
+
+   <div id="marketView" class="hidden panel">
+    <h2>Market</h2>
+    <div id="market"></div>
+   </div>
+  </div>
+ </div>
 </div>
 
 <script type="module">
@@ -34,7 +169,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebas
 import {
  getAuth,
  signInWithEmailAndPassword,
- createUserWithEmailAndPassword
+ createUserWithEmailAndPassword,
+ onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
 
 const firebaseConfig={
@@ -47,25 +183,131 @@ const firebaseConfig={
 const app=initializeApp(firebaseConfig);
 const auth=getAuth();
 
-const msg=document.getElementById("msg");
-btn.onclick=async()=>{
- msg.textContent="Se încearcă autentificarea...";
+/* LOGIN */
+loginBtn.onclick=async()=>{
+ loginMsg.textContent="";
  try{
   await signInWithEmailAndPassword(auth,email.value,pass.value);
-  msg.style.color="green";
-  msg.textContent="Login reușit ✔️";
- }catch(e){
-  msg.textContent="Login eșuat, încerc creare cont...";
-  try{
-   await createUserWithEmailAndPassword(auth,email.value,pass.value);
-   msg.style.color="green";
-   msg.textContent="Cont creat ✔️";
-  }catch(err){
-   msg.style.color="red";
-   msg.textContent=err.code;
-  }
+ }catch{
+  await createUserWithEmailAndPassword(auth,email.value,pass.value);
  }
 };
+
+onAuthStateChanged(auth,user=>{
+ if(!user)return;
+ login.classList.add("hidden");
+ game.classList.remove("hidden");
+ initGame();
+});
+
+/* GAME STATE – START FRESH */
+let money=20;
+let selectedCrop="carrot";
+let tiles={};
+let inventory={carrot:0,cabbage:0,flower:0};
+const FREE=[7,8,13,14];
+
+const crops={
+ carrot:{emoji:"🥕",time:5000,profit:5,cost:1},
+ cabbage:{emoji:"🥬",time:10000,profit:15,cost:3},
+ flower:{emoji:"🌼",time:20000,profit:40,cost:5}
+};
+
+/* UI */
+function show(id){
+ ["farmView","inventoryView","marketView"].forEach(v=>{
+  document.getElementById(v).classList.add("hidden");
+ });
+ document.getElementById(id).classList.remove("hidden");
+}
+
+function updateStats(){
+ stats.textContent=`💰 ${money}`;
+}
+
+/* FARM */
+function drawFarm(){
+ farm.innerHTML="";
+ for(let i=0;i<36;i++){
+  const d=document.createElement("div");
+  d.className="tile";
+  if(!FREE.includes(i)){
+   d.textContent="❄️";
+  }else if(!tiles[i]){
+   d.classList.add("free");
+   d.textContent="➕";
+   d.onclick=()=>plant(i);
+  }else{
+   const c=crops[tiles[i].t];
+   const r=c.time-(Date.now()-tiles[i].d);
+   d.classList.add(r<=0?"ready":"growing");
+   d.textContent=r<=0?c.emoji:"⏳";
+   if(r<=0)d.onclick=()=>harvest(i);
+  }
+  farm.appendChild(d);
+ }
+}
+
+function selectCrop(c){selectedCrop=c;}
+
+function plant(i){
+ const c=crops[selectedCrop];
+ if(money<c.cost)return;
+ money-=c.cost;
+ tiles[i]={t:selectedCrop,d:Date.now()};
+ updateStats();
+ drawFarm();
+}
+
+function harvest(i){
+ inventory[tiles[i].t]++;
+ delete tiles[i];
+ updateStats();
+ drawFarm();
+ drawInventory();
+ drawMarket();
+}
+
+/* INVENTORY */
+function drawInventory(){
+ inventory.innerHTML="";
+ for(const k in inventory){
+  inventory.innerHTML+=`
+   <div class="listItem">${crops[k].emoji} x${inventory[k]}</div>
+  `;
+ }
+}
+
+/* MARKET */
+function drawMarket(){
+ market.innerHTML="";
+ for(const k in inventory){
+  if(inventory[k]>0){
+   market.innerHTML+=`
+    <div class="listItem">
+     ${crops[k].emoji} +${crops[k].profit} 💰
+     <button onclick="sell('${k}')">Vinde</button>
+    </div>
+   `;
+  }
+ }
+}
+window.sell=(k)=>{
+ inventory[k]--;
+ money+=crops[k].profit;
+ updateStats();
+ drawInventory();
+ drawMarket();
+};
+
+/* START */
+function initGame(){
+ updateStats();
+ drawFarm();
+ drawInventory();
+ drawMarket();
+ setInterval(drawFarm,1000);
+}
 </script>
 
 </body>
