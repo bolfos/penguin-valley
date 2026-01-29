@@ -5,232 +5,219 @@
 <title>Penguin Farmer</title>
 
 <style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(#cceeff, #ffffff);
+body{margin:0;font-family:Arial;background:#e6f6ff}
+header{
+  background:#4fc3f7;color:white;padding:10px;
+  display:flex;justify-content:space-between
 }
+#layout{display:flex;height:calc(100vh - 50px)}
+#menu{width:200px;background:#d9f1ff;padding:10px}
+#menu button{width:100%;margin-bottom:6px;padding:8px;cursor:pointer}
+#content{flex:1;padding:15px}
+.hidden{display:none}
 
-#topbar {
-  background: #4fc3f7;
-  padding: 10px 20px;
-  display: flex;
-  justify-content: space-between;
-  color: white;
-  font-size: 18px;
+#farm{
+ display:grid;
+ grid-template-columns:repeat(6,70px);
+ gap:8px;
+ justify-content:center
 }
-
-#layout {
-  display: flex;
-  height: calc(100vh - 50px);
+.tile{
+ width:70px;height:70px;
+ border-radius:10px;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ cursor:pointer;
+ background:#b3e5fc
 }
-
-#sidebar {
-  width: 220px;
-  background: #e1f5fe;
-  padding: 10px;
-}
-
-#sidebar button {
-  width: 100%;
-  margin-bottom: 6px;
-  padding: 8px;
-  cursor: pointer;
-}
-
-#game { flex: 1; padding: 20px; }
-
-#farm {
-  display: grid;
-  grid-template-columns: repeat(6, 70px);
-  gap: 8px;
-  justify-content: center;
-}
-
-.tile {
-  width: 70px;
-  height: 70px;
-  border-radius: 10px;
-  background: #b3e5fc;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 22px;
-}
-
-.tile.free { background: #a5d6a7; }
-.tile.frozen { background: #cfd8dc; }
-
-.timer {
-  font-size: 10px;
-  color: #333;
-}
-
-.hidden { display: none; }
-
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-}
-
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-}
+.free{background:#a5d6a7}
+.frozen{background:#cfd8dc}
+.timer{font-size:11px}
 </style>
 </head>
 
 <body>
 
-<header id="topbar">
-  <div>🐧 Penguin Farmer</div>
-  <div>
-    <span id="money">💰 10</span>
-    <span id="level">⭐ Lv 1</span>
-    <span id="zone">📍 Ferma</span>
-  </div>
+<header>
+ <div>🐧 Penguin Farmer</div>
+ <div id="stats"></div>
 </header>
 
 <div id="layout">
+ <aside id="menu">
+  <button onclick="show('farmView')">🌾 Fermă</button>
+  <button onclick="show('cityView')">🏙️ Oraș</button>
+  <button onclick="show('missionsView')">📜 Misiuni</button>
+ </aside>
 
-<aside id="sidebar">
-  <button onclick="selectCrop('carrot')">🥕 Morcov</button>
-  <button onclick="selectCrop('cabbage')">🥬 Varză</button>
-  <button onclick="selectCrop('flower')">🌼 Floare</button>
-</aside>
+ <main id="content">
 
-<main id="game">
-  <h2>🌾 Ferma ta</h2>
-  <div id="farm"></div>
-</main>
+  <div id="farmView">
+   <h2>Ferma ta</h2>
+   <button onclick="selectCrop('carrot')">🥕</button>
+   <button onclick="selectCrop('cabbage')">🥬</button>
+   <button onclick="selectCrop('flower')">🌼</button>
+   <div id="farm"></div>
+  </div>
 
+  <div id="cityView" class="hidden">
+   <h2>Oraș</h2>
+   <button onclick="buyDog()">🐕 Câine (50)</button>
+   <button onclick="buySnowmobile()">🛷 Snowmobile (100)</button>
+   <p id="cityInfo"></p>
+  </div>
+
+  <div id="missionsView" class="hidden">
+   <h2>Misiuni</h2>
+   <ul id="missions"></ul>
+  </div>
+
+ </main>
 </div>
 
 <script>
-/* === DATE === */
-const GRID = 6;
-const farm = document.getElementById("farm");
-const moneyEl = document.getElementById("money");
-const levelEl = document.getElementById("level");
+/* ====== SAVE / LOAD ====== */
+function save(){
+ localStorage.setItem("pf_save",JSON.stringify({
+  money,level,xp,tiles,FREE,penguinPos,
+  dogs,vehicle,missions
+ }));
+}
+function load(){
+ const d=JSON.parse(localStorage.getItem("pf_save"));
+ if(!d)return;
+ money=d.money;level=d.level;xp=d.xp;
+ tiles=d.tiles;FREE=d.FREE;penguinPos=d.penguinPos;
+ dogs=d.dogs;vehicle=d.vehicle;missions=d.missions;
+}
 
-let money = 10;
-let level = 1;
-let xp = 0;
+/* ====== DATE ====== */
+const GRID=6;
+let money=10,level=1,xp=0;
+let selectedCrop="carrot";
+let penguinPos=7;
+let FREE=[7,8,13,14];
+let tiles={};
+let dogs=0,vehicle="sled";
 
-let FREE_TILES = [7,8,13,14];
-let tiles = {};
-let penguinPos = 7;
-let selectedCrop = "carrot";
-
-const crops = {
-  carrot:{emoji:"🥕",time:10000,profit:5,cost:1},
-  cabbage:{emoji:"🥬",time:20000,profit:15,cost:3},
-  flower:{emoji:"🌼",time:30000,profit:40,cost:5}
+const crops={
+ carrot:{emoji:"🥕",time:10000,profit:5,cost:1},
+ cabbage:{emoji:"🥬",time:20000,profit:15,cost:3},
+ flower:{emoji:"🌼",time:30000,profit:40,cost:5}
 };
 
-/* === UI === */
+let missions=[
+ {text:"Recoltează 3 morcovi",done:false,check:()=>count("carrot")>=3,reward:20},
+ {text:"Ajungi la 50 bani",done:false,check:()=>money>=50,reward:30}
+];
+
+/* ====== UI ====== */
 function updateUI(){
-  moneyEl.textContent="💰 "+money;
-  levelEl.textContent="⭐ Lv "+level;
+ document.getElementById("stats").textContent=
+  `💰 ${money} | ⭐ ${level}`;
+ document.getElementById("cityInfo").textContent=
+  `🐕 ${dogs} | 🛷 ${vehicle}`;
+ renderMissions();
+ save();
+}
+function show(id){
+ ["farmView","cityView","missionsView"].forEach(v=>{
+  document.getElementById(v).classList.add("hidden");
+ });
+ document.getElementById(id).classList.remove("hidden");
 }
 
-/* === FARM === */
+/* ====== FERMA ====== */
+const farm=document.getElementById("farm");
 function drawFarm(){
-  farm.innerHTML="";
-  for(let i=0;i<GRID*GRID;i++){
-    const t=document.createElement("div");
-    t.className="tile";
+ farm.innerHTML="";
+ for(let i=0;i<GRID*GRID;i++){
+  const t=document.createElement("div");
+  t.className="tile";
 
-    if(!FREE_TILES.includes(i)){
-      t.classList.add("frozen");
-      t.textContent="❄️";
-      t.onclick=()=>breakIce(i);
-      farm.appendChild(t);
-      continue;
-    }
-
-    t.classList.add("free");
-
-    const isPenguin = penguinPos === i;
-
-    if(!tiles[i]){
-      t.textContent = isPenguin ? "🐧" : "";
-      t.onclick = ()=>plant(i);
-    } else {
-      const c=crops[tiles[i].type];
-      const elapsed = Date.now()-tiles[i].plantedAt;
-      const remaining = Math.max(0, Math.ceil((c.time-elapsed)/1000));
-      const ready = elapsed >= c.time;
-
-      t.innerHTML = `
-        <div>${c.emoji}${isPenguin?" 🐧":""}</div>
-        <div class="timer">${ready?"gata":remaining+"s"}</div>
-      `;
-
-      t.onclick = ready ? ()=>harvest(i) : ()=>movePenguin(i);
-    }
-    farm.appendChild(t);
+  if(!FREE.includes(i)){
+   t.classList.add("frozen");
+   t.textContent="❄️";
+   t.onclick=()=>breakIce(i);
+   farm.appendChild(t);continue;
   }
+
+  t.classList.add("free");
+  const isPeng=i===penguinPos;
+
+  if(!tiles[i]){
+   t.textContent=isPeng?"🐧":"";
+   t.onclick=()=>plant(i);
+  }else{
+   const c=crops[tiles[i].type];
+   const el=Date.now()-tiles[i].plantedAt;
+   const r=Math.max(0,Math.ceil((c.time-el)/1000));
+   const ready=el>=c.time;
+   t.innerHTML=`<div>${c.emoji}${isPeng?"🐧":""}</div>
+                <div class="timer">${ready?"gata":r+"s"}</div>`;
+   t.onclick=ready?()=>harvest(i):()=>movePenguin(i);
+  }
+  farm.appendChild(t);
+ }
 }
 
-/* === ACTIONS === */
+/* ====== ACȚIUNI ====== */
+function selectCrop(c){selectedCrop=c}
 function plant(i){
-  const c=crops[selectedCrop];
-  if(money<c.cost || tiles[i]) return;
-  money-=c.cost;
-  tiles[i]={type:selectedCrop,plantedAt:Date.now()};
-  updateUI(); drawFarm();
+ const c=crops[selectedCrop];
+ if(money<c.cost||tiles[i])return;
+ money-=c.cost;
+ tiles[i]={type:selectedCrop,plantedAt:Date.now()};
+ drawFarm();updateUI();
 }
-
 function harvest(i){
-  const c=crops[tiles[i].type];
-  money+=c.profit;
-  xp+=5;
-  if(xp>=100){xp=0;level++;}
-  delete tiles[i];
-  updateUI(); drawFarm();
+ const c=crops[tiles[i].type];
+ money+=c.profit;xp+=10;
+ if(xp>=100){xp=0;level++}
+ delete tiles[i];
+ drawFarm();updateUI();
 }
-
 function breakIce(i){
-  if(money<20) return;
-  money-=20;
-  FREE_TILES.push(i);
-  updateUI(); drawFarm();
+ if(money<20)return;
+ money-=20;FREE.push(i);
+ drawFarm();updateUI();
+}
+function movePenguin(i){penguinPos=i;drawFarm()}
+
+/* ====== ORAȘ ====== */
+function buyDog(){
+ if(money<50)return;
+ money-=50;dogs++;updateUI();
+}
+function buySnowmobile(){
+ if(money<100)return;
+ money-=100;vehicle="snowmobile";updateUI();
 }
 
-function movePenguin(i){
-  penguinPos=i;
-  drawFarm();
+/* ====== MISIUNI ====== */
+function count(type){
+ return Object.values(tiles).filter(t=>t.type===type).length;
+}
+function renderMissions(){
+ const ul=document.getElementById("missions");
+ ul.innerHTML="";
+ missions.forEach(m=>{
+  if(!m.done && m.check()){
+   m.done=true;
+   money+=m.reward;
+  }
+  const li=document.createElement("li");
+  li.textContent=m.text+(m.done?" ✅":"");
+  ul.appendChild(li);
+ });
 }
 
-function selectCrop(c){selectedCrop=c;}
-
-/* === KEYBOARD MOVE === */
-document.addEventListener("keydown",e=>{
-  const row=Math.floor(penguinPos/GRID);
-  const col=penguinPos%GRID;
-  let next=penguinPos;
-
-  if(e.key==="ArrowUp"||e.key==="w") next=(row>0)?penguinPos-GRID:penguinPos;
-  if(e.key==="ArrowDown"||e.key==="s") next=(row<GRID-1)?penguinPos+GRID:penguinPos;
-  if(e.key==="ArrowLeft"||e.key==="a") next=(col>0)?penguinPos-1:penguinPos;
-  if(e.key==="ArrowRight"||e.key==="d") next=(col<GRID-1)?penguinPos+1:penguinPos;
-
-  if(FREE_TILES.includes(next)) penguinPos=next;
-  drawFarm();
-});
-
-/* === START === */
-updateUI();
+/* ====== START ====== */
+load();
 drawFarm();
+updateUI();
 setInterval(drawFarm,1000);
 </script>
 
