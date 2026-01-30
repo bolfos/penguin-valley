@@ -7,7 +7,7 @@
 <style>
 body{
  margin:0;
- font-family:Arial,Helvetica,sans-serif;
+ font-family:Arial;
  background:#b3e5fc;
 }
 #top{
@@ -34,31 +34,49 @@ body{
  cursor:pointer;
 }
 #content{flex:1;padding:12px}
-
 .hidden{display:none}
 
 /* FARM */
 #farm{
  display:grid;
- grid-template-columns:repeat(8,72px);
+ grid-template-columns:repeat(10,70px);
  gap:8px;
  justify-content:center;
 }
 .tile{
- width:72px;
- height:72px;
+ width:70px;height:70px;
  border-radius:14px;
- background-size:cover;
  display:flex;
  align-items:center;
  justify-content:center;
+ position:relative;
+ background:#cfd8dc;
+ background-size:cover;
 }
+.free{background:#a5d6a7}
+.locked{background:#90a4ae}
 .time{
+ position:absolute;
+ bottom:4px;
+ right:4px;
+ font-size:11px;
  background:rgba(0,0,0,.6);
  color:white;
  padding:2px 6px;
- border-radius:8px;
- font-size:12px;
+ border-radius:6px;
+}
+
+/* BUILDINGS */
+.build{
+ width:90px;
+ height:90px;
+ background:#ffe082;
+ border-radius:16px;
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ margin:8px;
+ cursor:pointer;
 }
 
 /* MARKET */
@@ -84,11 +102,12 @@ body{
  <div id="menu">
   <button onclick="show('farmView')">🌾 Fermă</button>
   <button onclick="show('marketView')">🏪 Market</button>
+  <button onclick="show('buildView')">🏗️ Clădiri</button>
  </div>
 
  <div id="content">
   <div id="farmView">
-   <h3>Alege cultură</h3>
+   <h3>Culturi</h3>
    <button onclick="selectCrop('carrot')">Morcov</button>
    <button onclick="selectCrop('cabbage')">Varză</button>
    <button onclick="selectCrop('flower')">Floare</button>
@@ -96,47 +115,61 @@ body{
   </div>
 
   <div id="marketView" class="hidden">
-   <h2>Market MMO</h2>
+   <h2>Market</h2>
    <div id="market"></div>
+  </div>
+
+  <div id="buildView" class="hidden">
+   <h2>Clădiri</h2>
+   <div id="buildings"></div>
   </div>
  </div>
 </div>
 
 <script>
-/* GAME STATE */
-let money=30;
+let money=40;
 let selectedCrop="carrot";
 let tiles={};
 let inventory={carrot:0,cabbage:0,flower:0};
+let unlocked=20; // câte tile-uri sunt deblocate
 
-const FREE=[18,19,20,26,27,28];
 const crops={
- carrot:{img:"assets/crops/carrot.png",time:5000,cost:1,price:4},
- cabbage:{img:"assets/crops/cabbage.png",time:9000,cost:3,price:10},
- flower:{img:"assets/crops/flower.png",time:15000,cost:5,price:25}
+ carrot:{img:"assets/crops/carrot.png",time:4000,cost:1,price:4},
+ cabbage:{img:"assets/crops/cabbage.png",time:8000,cost:3,price:10},
+ flower:{img:"assets/crops/flower.png",time:14000,cost:5,price:25}
 };
 
-/* UI */
+const buildingsData={
+ barn:{name:"Depozit",cost:30},
+ market:{name:"Market",cost:50}
+};
+let buildings={barn:0,market:0};
+
 function show(id){
- farmView.classList.add("hidden");
- marketView.classList.add("hidden");
+ ["farmView","marketView","buildView"].forEach(v=>{
+  document.getElementById(v).classList.add("hidden");
+ });
  document.getElementById(id).classList.remove("hidden");
 }
-function statsUpdate(){
+
+function updateStats(){
  stats.textContent=`💰 ${money}`;
 }
 
 /* FARM */
 function drawFarm(){
  farm.innerHTML="";
- for(let i=0;i<64;i++){
+ for(let i=0;i<100;i++){
   const t=document.createElement("div");
   t.className="tile";
 
-  if(!FREE.includes(i)){
-   t.style.backgroundImage="url('assets/tiles/ice.png')";
+  if(i>=unlocked){
+   t.classList.add("locked");
+   t.textContent="❄️";
+   t.onclick=()=>unlockTile(i);
   }else if(!tiles[i]){
-   t.style.backgroundImage="url('assets/tiles/grass.png')";
+   t.classList.add("free");
+   t.textContent="+";
    t.onclick=()=>plant(i);
   }else{
    const c=crops[tiles[i].type];
@@ -148,11 +181,20 @@ function drawFarm(){
     tm.textContent=Math.ceil(r/1000)+"s";
     t.appendChild(tm);
    }else{
+    t.textContent="✔";
     t.onclick=()=>harvest(i);
    }
   }
   farm.appendChild(t);
  }
+}
+
+function unlockTile(i){
+ if(money<10)return;
+ money-=10;
+ unlocked++;
+ updateStats();
+ drawFarm();
 }
 
 function selectCrop(c){selectedCrop=c;}
@@ -161,22 +203,22 @@ function plant(i){
  if(money<c.cost)return;
  money-=c.cost;
  tiles[i]={type:selectedCrop,start:Date.now()};
- statsUpdate();drawFarm();
+ updateStats();drawFarm();
 }
 function harvest(i){
  inventory[tiles[i].type]++;
  delete tiles[i];
- statsUpdate();drawFarm();drawMarket();
+ updateStats();drawFarm();drawMarket();
 }
 
-/* MARKET MMO (simplificat) */
+/* MARKET */
 function drawMarket(){
  market.innerHTML="";
  for(const k in inventory){
   market.innerHTML+=`
    <div class="marketItem">
     ${k} x${inventory[k]}
-    <button onclick="sell('${k}')">Vinde (${crops[k].price}💰)</button>
+    <button onclick="sell('${k}')">Vinde ${crops[k].price}💰</button>
    </div>`;
  }
 }
@@ -184,13 +226,31 @@ function sell(k){
  if(inventory[k]<=0)return;
  inventory[k]--;
  money+=crops[k].price;
- statsUpdate();drawMarket();
+ updateStats();drawMarket();
+}
+
+/* BUILDINGS */
+function drawBuildings(){
+ buildings.innerHTML="";
+ for(const k in buildingsData){
+  buildings.innerHTML+=`
+   <div class="build" onclick="upgrade('${k}')">
+    ${buildingsData[k].name}<br>lvl ${buildings[k]}
+   </div>`;
+ }
+}
+function upgrade(k){
+ if(money<buildingsData[k].cost)return;
+ money-=buildingsData[k].cost;
+ buildings[k]++;
+ updateStats();drawBuildings();
 }
 
 /* START */
-statsUpdate();
+updateStats();
 drawFarm();
 drawMarket();
+drawBuildings();
 setInterval(drawFarm,1000);
 </script>
 
