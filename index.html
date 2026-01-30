@@ -2,175 +2,181 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<title>Penguin Farmer</title>
+<title>Penguin Valley</title>
+
+<!-- FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+const firebaseConfig = {
+ apiKey: "AIzaSyBSzq_-8WZ7xSqPqUd1nr_p4mNoHdFaZ3w",
+ authDomain: "penguin-valley-9d490.firebaseapp.com",
+ projectId: "penguin-valley-9d490",
+ storageBucket: "penguin-valley-9d490.firebasestorage.app",
+ messagingSenderId: "399240782858",
+ appId: "1:399240782858:web:1d79355154b8be1ed3ebf3"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth();
+const db = getFirestore();
+
+window.login = async () => {
+ const e=email.value,p=pass.value;
+ try{
+  await signInWithEmailAndPassword(auth,e,p);
+ }catch{
+  await createUserWithEmailAndPassword(auth,e,p);
+ }
+};
+
+onAuthStateChanged(auth,async u=>{
+ if(!u)return;
+ loginBox.style.display="none";
+ game.style.display="block";
+
+ const ref=doc(db,"users",u.uid);
+ const snap=await getDoc(ref);
+ if(snap.exists()) Object.assign(state,snap.data());
+ draw();
+ setInterval(draw,1000);
+});
+
+window.save=async()=>{
+ const u=auth.currentUser;
+ if(u) await setDoc(doc(db,"users",u.uid),state);
+};
+
+</script>
+
 <style>
-body{margin:0;font-family:Arial;background:#b3e5fc}
-#top{background:#0d47a1;color:white;padding:10px;display:flex;justify-content:space-between}
-#layout{display:flex;height:calc(100vh - 50px)}
-#menu{width:200px;background:#bbdefb;padding:10px}
-#menu button{width:100%;margin-bottom:8px;padding:10px;border:none;border-radius:12px;background:#1976d2;color:white}
-#content{flex:1;padding:12px}
-.hidden{display:none}
-#farm{display:grid;grid-template-columns:repeat(10,70px);gap:8px;justify-content:center}
-.tile{width:70px;height:70px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#cfd8dc;position:relative}
-.free{background:#a5d6a7}
-.locked{background:#90a4ae}
-.time{position:absolute;bottom:4px;right:4px;font-size:11px;background:rgba(0,0,0,.6);color:white;padding:2px 6px;border-radius:6px}
-.marketItem{background:white;padding:10px;border-radius:12px;margin-bottom:8px;display:flex;justify-content:space-between}
+body{margin:0;font-family:Arial;background:#cfefff;text-align:center}
+#loginBox{margin-top:100px}
+input,button{padding:8px;margin:5px}
+
+#game{display:none}
+#farm{
+ display:grid;
+ grid-template-columns:repeat(10,70px);
+ gap:6px;
+ justify-content:center;
+ margin:20px auto;
+}
+
+.tile{
+ width:70px;height:70px;
+ background-size:cover;
+ border-radius:14px;
+ animation:pop .2s;
+}
+
+@keyframes pop{
+ from{transform:scale(.8);opacity:0}
+ to{transform:scale(1);opacity:1}
+}
+
+.free{background-image:url("assets/tiles/grass.png")}
+.locked{background-image:url("assets/tiles/ice.png")}
+.carrot{background-image:url("assets/tiles/carrot.png");animation:grow 1s infinite alternate}
+.cabbage{background-image:url("assets/tiles/cabbage.png");animation:grow 1s infinite alternate}
+.flower{background-image:url("assets/tiles/flower.png");animation:grow 1s infinite alternate}
+
+@keyframes grow{
+ from{filter:brightness(.9)}
+ to{filter:brightness(1.1)}
+}
+
+#top{display:flex;justify-content:space-around;align-items:center}
 </style>
 </head>
 
 <body>
 
-<div id="top">
- <div>🐧 Penguin Farmer</div>
- <div id="stats"></div>
+<div id="loginBox">
+ <h2>🐧 Penguin Valley</h2>
+ <input id="email" placeholder="email">
+ <input id="pass" type="password" placeholder="parola">
+ <br>
+ <button onclick="login()">Intră / Creează cont</button>
 </div>
 
-<div id="layout">
- <div id="menu">
-  <button onclick="show('farmView')">🌾 Fermă</button>
-  <button onclick="show('marketView')">🏪 Market</button>
- </div>
-
- <div id="content">
-  <div id="farmView">
-   <button onclick="selectCrop('carrot')">🥕</button>
-   <button onclick="selectCrop('cabbage')">🥬</button>
-   <button onclick="selectCrop('flower')">🌼</button>
-   <div id="farm"></div>
-  </div>
-
-  <div id="marketView" class="hidden">
-   <h2>Market</h2>
-   <div id="market"></div>
+<div id="game">
+ <div id="top">
+  <div id="money">💰</div>
+  <div>
+   <button onclick="sel('carrot')">🥕</button>
+   <button onclick="sel('cabbage')">🥬</button>
+   <button onclick="sel('flower')">🌼</button>
   </div>
  </div>
+
+ <img src="assets/penguin.png" width="80">
+
+ <div id="farm"></div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged }
- from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc }
- from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
-
-/* 🔥 FIREBASE CONFIG – AL TĂU */
-const firebaseConfig={
- apiKey:"AIzaSyBSzq_-8WZ7xSqPqUd1nr_p4mNoHdFaZ3w",
- authDomain:"penguin-valley-9d490.firebaseapp.com",
- projectId:"penguin-valley-9d490",
- appId:"1:399240782858:web:1d79355154b8be1ed3ebf3"
-};
-
-const app=initializeApp(firebaseConfig);
-const auth=getAuth();
-const db=getFirestore();
-
-/* GAME STATE */
-let uid=null;
-let money=20;
-let selectedCrop="carrot";
-let tiles={},inventory={carrot:0,cabbage:0,flower:0};
-let unlocked=20;
-
+<script>
 const crops={
- carrot:{time:4000,cost:1,price:4},
- cabbage:{time:8000,cost:3,price:10},
- flower:{time:14000,cost:5,price:25}
+ carrot:{t:60000,c:1,p:5},
+ cabbage:{t:180000,c:3,p:15},
+ flower:{t:360000,c:5,p:40}
 };
 
-/* AUTH */
-signInAnonymously(auth);
-onAuthStateChanged(auth,async user=>{
- if(!user)return;
- uid=user.uid;
- await loadGame();
- startGame();
-});
+let state={
+ money:10,
+ tiles:{},
+ unlocked:20,
+ sel:"carrot"
+};
 
-/* FIRESTORE */
-async function loadGame(){
- const ref=doc(db,"players",uid);
- const snap=await getDoc(ref);
- if(snap.exists()){
-  const d=snap.data();
-  money=d.money;tiles=d.tiles||{};
-  inventory=d.inventory||inventory;
-  unlocked=d.unlocked||unlocked;
- }else{
-  await saveGame();
- }
-}
-async function saveGame(){
- await setDoc(doc(db,"players",uid),{
-  money,tiles,inventory,unlocked
- });
+const farm=document.getElementById("farm");
+const money=document.getElementById("money");
+
+function sel(t){state.sel=t}
+
+function plant(i){
+ const c=crops[state.sel];
+ if(state.money<c.c||state.tiles[i])return;
+ state.money-=c.c;
+ state.tiles[i]={t:state.sel,d:Date.now()};
+ save();draw();
 }
 
-/* UI */
-function show(id){
- farmView.classList.add("hidden");
- marketView.classList.add("hidden");
- document.getElementById(id).classList.remove("hidden");
+function harvest(i){
+ const c=crops[state.tiles[i].t];
+ if(Date.now()-state.tiles[i].d<c.t)return;
+ state.money+=c.p;
+ delete state.tiles[i];
+ save();draw();
 }
-function statsUpdate(){stats.textContent=`💰 ${money}`}
 
-/* FARM */
-function drawFarm(){
+function unlock(){
+ if(state.money<5)return;
+ state.money-=5;
+ state.unlocked++;
+ save();draw();
+}
+
+function draw(){
+ money.textContent="💰 "+state.money;
  farm.innerHTML="";
  for(let i=0;i<100;i++){
-  const t=document.createElement("div");t.className="tile";
-  if(i>=unlocked){
-   t.classList.add("locked");t.textContent="❄️";
-   t.onclick=()=>unlock();
-  }else if(!tiles[i]){
-   t.classList.add("free");t.textContent="+";
-   t.onclick=()=>plant(i);
+  const d=document.createElement("div");
+  d.className="tile";
+  if(i>=state.unlocked){
+   d.classList.add("locked");
+   d.onclick=unlock;
+  }else if(!state.tiles[i]){
+   d.classList.add("free");
+   d.onclick=()=>plant(i);
   }else{
-   const c=crops[tiles[i].t];
-   const r=c.time-(Date.now()-tiles[i].d);
-   t.textContent=r<=0?"✔":"⏳";
-   if(r<=0)t.onclick=()=>harvest(i);
+   d.classList.add(state.tiles[i].t);
+   d.onclick=()=>harvest(i);
   }
-  farm.appendChild(t);
+  farm.appendChild(d);
  }
-}
-
-function unlock(){if(money<10)return;money-=10;unlocked++;statsUpdate();drawFarm();saveGame();}
-function selectCrop(c){selectedCrop=c}
-function plant(i){
- const c=crops[selectedCrop];
- if(money<c.cost)return;
- money-=c.cost;
- tiles[i]={t:selectedCrop,d:Date.now()};
- statsUpdate();drawFarm();saveGame();
-}
-function harvest(i){
- inventory[tiles[i].t]++;
- delete tiles[i];
- statsUpdate();drawFarm();drawMarket();saveGame();
-}
-
-/* MARKET */
-function drawMarket(){
- market.innerHTML="";
- for(const k in inventory){
-  market.innerHTML+=`
-   <div class="marketItem">${k} x${inventory[k]}
-   <button onclick="sell('${k}')">Vinde ${crops[k].price}💰</button></div>`;
- }
-}
-window.sell=k=>{
- if(inventory[k]<=0)return;
- inventory[k]--;money+=crops[k].price;
- statsUpdate();drawMarket();saveGame();
-};
-
-/* START */
-function startGame(){
- statsUpdate();drawFarm();drawMarket();
- setInterval(drawFarm,1000);
 }
 </script>
 
