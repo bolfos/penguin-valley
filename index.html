@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Penguin Valley</title>
 
-<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
@@ -24,11 +23,10 @@ const auth = getAuth();
 const db = getFirestore();
 
 window.login = async () => {
- const e=email.value,p=pass.value;
  try{
-  await signInWithEmailAndPassword(auth,e,p);
+  await signInWithEmailAndPassword(auth,email.value,pass.value);
  }catch{
-  await createUserWithEmailAndPassword(auth,e,p);
+  await createUserWithEmailAndPassword(auth,email.value,pass.value);
  }
 };
 
@@ -36,27 +34,26 @@ onAuthStateChanged(auth,async u=>{
  if(!u)return;
  loginBox.style.display="none";
  game.style.display="block";
-
  const ref=doc(db,"users",u.uid);
  const snap=await getDoc(ref);
  if(snap.exists()) Object.assign(state,snap.data());
- draw();
- setInterval(draw,1000);
+ draw(); setInterval(draw,1000);
 });
 
 window.save=async()=>{
  const u=auth.currentUser;
  if(u) await setDoc(doc(db,"users",u.uid),state);
 };
-
 </script>
 
 <style>
 body{margin:0;font-family:Arial;background:#cfefff;text-align:center}
-#loginBox{margin-top:100px}
 input,button{padding:8px;margin:5px}
-
+#loginBox{margin-top:100px}
 #game{display:none}
+
+#top{display:flex;justify-content:space-around;align-items:center}
+
 #farm{
  display:grid;
  grid-template-columns:repeat(10,70px);
@@ -72,23 +69,28 @@ input,button{padding:8px;margin:5px}
  animation:pop .2s;
 }
 
-@keyframes pop{
- from{transform:scale(.8);opacity:0}
- to{transform:scale(1);opacity:1}
-}
+@keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
 
 .free{background-image:url("assets/tiles/grass.png")}
 .locked{background-image:url("assets/tiles/ice.png")}
-.carrot{background-image:url("assets/tiles/carrot.png");animation:grow 1s infinite alternate}
-.cabbage{background-image:url("assets/tiles/cabbage.png");animation:grow 1s infinite alternate}
-.flower{background-image:url("assets/tiles/flower.png");animation:grow 1s infinite alternate}
+.carrot{background-image:url("assets/tiles/carrot.png")}
+.cabbage{background-image:url("assets/tiles/cabbage.png")}
+.flower{background-image:url("assets/tiles/flower.png")}
 
-@keyframes grow{
- from{filter:brightness(.9)}
- to{filter:brightness(1.1)}
+#npcBox,#buildingBox{
+ background:white;
+ width:320px;
+ margin:15px auto;
+ padding:10px;
+ border-radius:12px;
+ box-shadow:0 4px 10px rgba(0,0,0,.2)
 }
 
-#top{display:flex;justify-content:space-around;align-items:center}
+.building{
+ width:100px;
+ cursor:pointer;
+ margin:5px;
+}
 </style>
 </head>
 
@@ -97,7 +99,7 @@ input,button{padding:8px;margin:5px}
 <div id="loginBox">
  <h2>🐧 Penguin Valley</h2>
  <input id="email" placeholder="email">
- <input id="pass" type="password" placeholder="parola">
+ <input id="pass" type="password">
  <br>
  <button onclick="login()">Intră / Creează cont</button>
 </div>
@@ -114,6 +116,21 @@ input,button{padding:8px;margin:5px}
 
  <img src="assets/penguin.png" width="80">
 
+ <!-- CLĂDIRI -->
+ <div id="buildingBox">
+  <b>🏗️ Clădiri</b><br>
+  <img src="assets/buildings/market.png" class="building" onclick="openMarket()">
+  <img src="assets/buildings/storage.png" class="building" onclick="openStorage()">
+  <img src="assets/buildings/house.png" class="building" onclick="openHouse()">
+  <div id="buildingInfo"></div>
+ </div>
+
+ <!-- NPC -->
+ <div id="npcBox">
+  <b id="missionText"></b><br>
+  <button onclick="claimMission()">Finalizează misiunea</button>
+ </div>
+
  <div id="farm"></div>
 </div>
 
@@ -124,17 +141,28 @@ const crops={
  flower:{t:360000,c:5,p:40}
 };
 
+const missions=[
+ {text:"Plantează 3 morcovi",check:()=>count("carrot")>=3,reward:10},
+ {text:"Câștigă 30 monede",check:()=>state.money>=30,reward:20}
+];
+
 let state={
  money:10,
  tiles:{},
  unlocked:20,
- sel:"carrot"
+ sel:"carrot",
+ mission:0,
+ storage:0
 };
 
 const farm=document.getElementById("farm");
 const money=document.getElementById("money");
+const missionText=document.getElementById("missionText");
+const info=document.getElementById("buildingInfo");
 
 function sel(t){state.sel=t}
+
+function count(t){return Object.values(state.tiles).filter(x=>x.t===t).length}
 
 function plant(i){
  const c=crops[state.sel];
@@ -145,8 +173,9 @@ function plant(i){
 }
 
 function harvest(i){
- const c=crops[state.tiles[i].t];
- if(Date.now()-state.tiles[i].d<c.t)return;
+ const x=state.tiles[i];
+ const c=crops[x.t];
+ if(Date.now()-x.d<c.t)return;
  state.money+=c.p;
  delete state.tiles[i];
  save();draw();
@@ -159,8 +188,35 @@ function unlock(){
  save();draw();
 }
 
+/* CLĂDIRI */
+function openMarket(){
+ info.innerHTML="🏪 Market: vinzi automat recolta (+20%)";
+}
+
+function openStorage(){
+ state.storage+=10;
+ info.innerHTML="📦 Depozit extins: +10 capacitate";
+ save();
+}
+
+function openHouse(){
+ state.unlocked+=5;
+ info.innerHTML="🏠 Casă: +5 tile-uri";
+ save();
+}
+
+/* MISIUNI */
+function claimMission(){
+ const m=missions[state.mission];
+ if(!m||!m.check())return;
+ state.money+=m.reward;
+ state.mission++;
+ save();draw();
+}
+
 function draw(){
  money.textContent="💰 "+state.money;
+ missionText.textContent=missions[state.mission]?.text || "Toate misiunile finalizate 🎉";
  farm.innerHTML="";
  for(let i=0;i<100;i++){
   const d=document.createElement("div");
