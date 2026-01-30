@@ -5,78 +5,68 @@
 <title>Penguin Farmer</title>
 
 <style>
-*{box-sizing:border-box}
 body{
  margin:0;
  font-family:Arial,Helvetica,sans-serif;
- background:linear-gradient(#b3e5fc,#e0f7fa)
+ background:#b3e5fc;
 }
-button{cursor:pointer}
-.hidden{display:none}
-
-/* TOP */
-#topbar{
- height:50px;
+#top{
  background:#0d47a1;
  color:white;
+ padding:10px;
  display:flex;
- align-items:center;
  justify-content:space-between;
- padding:0 16px;
 }
-
-/* LAYOUT */
 #layout{display:flex;height:calc(100vh - 50px)}
-#sidebar{
- width:210px;
+#menu{
+ width:200px;
  background:#bbdefb;
  padding:10px;
 }
-.sidebtn{
+#menu button{
  width:100%;
- padding:12px;
  margin-bottom:8px;
+ padding:10px;
+ border:none;
  border-radius:12px;
  background:#1976d2;
  color:white;
- border:none;
+ cursor:pointer;
 }
+#content{flex:1;padding:12px}
 
-/* CONTENT */
-#content{flex:1;padding:16px}
+.hidden{display:none}
 
 /* FARM */
 #farm{
  display:grid;
- grid-template-columns:repeat(8,80px);
- gap:10px;
+ grid-template-columns:repeat(8,72px);
+ gap:8px;
  justify-content:center;
 }
 .tile{
- width:80px;height:80px;
+ width:72px;
+ height:72px;
  border-radius:14px;
+ background-size:cover;
  display:flex;
  align-items:center;
  justify-content:center;
- font-size:26px;
- background:#cfd8dc;
 }
-.free{background:#a5d6a7}
-.growing{background:#ffe082}
-.ready{background:#81c784}
+.time{
+ background:rgba(0,0,0,.6);
+ color:white;
+ padding:2px 6px;
+ border-radius:8px;
+ font-size:12px;
+}
 
-/* PANELS */
-.panel{
+/* MARKET */
+.marketItem{
  background:white;
- padding:16px;
- border-radius:16px;
- max-width:500px;
-}
-.listItem{
- background:#f5f5f5;
  padding:10px;
- margin-bottom:8px;
  border-radius:12px;
+ margin-bottom:8px;
  display:flex;
  justify-content:space-between;
 }
@@ -85,176 +75,123 @@ button{cursor:pointer}
 
 <body>
 
-<div id="game">
- <div id="topbar">
-  <div>🐧 Penguin Farmer</div>
-  <div id="stats"></div>
+<div id="top">
+ <div>🐧 Penguin Farmer</div>
+ <div id="stats"></div>
+</div>
+
+<div id="layout">
+ <div id="menu">
+  <button onclick="show('farmView')">🌾 Fermă</button>
+  <button onclick="show('marketView')">🏪 Market</button>
  </div>
 
- <div id="layout">
-  <div id="sidebar">
-   <button class="sidebtn" onclick="show('farmView')">🌾 Fermă</button>
-   <button class="sidebtn" onclick="show('missionView')">📜 Misiuni</button>
-   <button class="sidebtn" onclick="show('buildView')">🏗️ Clădiri</button>
+ <div id="content">
+  <div id="farmView">
+   <h3>Alege cultură</h3>
+   <button onclick="selectCrop('carrot')">Morcov</button>
+   <button onclick="selectCrop('cabbage')">Varză</button>
+   <button onclick="selectCrop('flower')">Floare</button>
+   <div id="farm"></div>
   </div>
 
-  <div id="content">
-   <div id="farmView">
-    <h2>Harta fermei</h2>
-    <button onclick="selectCrop('carrot')">🥕</button>
-    <button onclick="selectCrop('cabbage')">🥬</button>
-    <button onclick="selectCrop('flower')">🌼</button>
-    <div id="farm"></div>
-   </div>
-
-   <div id="missionView" class="hidden panel">
-    <h2>Misiune</h2>
-    <div id="missionBox"></div>
-   </div>
-
-   <div id="buildView" class="hidden panel">
-    <h2>Clădiri</h2>
-    <div id="buildings"></div>
-   </div>
+  <div id="marketView" class="hidden">
+   <h2>Market MMO</h2>
+   <div id="market"></div>
   </div>
  </div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged }
- from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
-
-const firebaseConfig={
- apiKey:"AIzaSyBSzq_-8WZ7xSqPqUd1nr_p4mNoHdFaZ3w",
- authDomain:"penguin-valley-9d490.firebaseapp.com",
- projectId:"penguin-valley-9d490",
- appId:"1:399240782858:web:1d79355154b8be1ed3ebf3"
-};
-const app=initializeApp(firebaseConfig);
-const auth=getAuth();
-
-/* AUTO LOGIN ANONIM */
-signInAnonymously(auth);
-onAuthStateChanged(auth,u=>{
- if(u) initGame();
-});
-
+<script>
 /* GAME STATE */
-let money=20;
+let money=30;
 let selectedCrop="carrot";
 let tiles={};
 let inventory={carrot:0,cabbage:0,flower:0};
-let level=1;
 
 const FREE=[18,19,20,26,27,28];
 const crops={
- carrot:{emoji:"🥕",time:5000,profit:5,cost:1},
- cabbage:{emoji:"🥬",time:10000,profit:15,cost:3},
- flower:{emoji:"🌼",time:20000,profit:40,cost:5}
+ carrot:{img:"assets/crops/carrot.png",time:5000,cost:1,price:4},
+ cabbage:{img:"assets/crops/cabbage.png",time:9000,cost:3,price:10},
+ flower:{img:"assets/crops/flower.png",time:15000,cost:5,price:25}
 };
-
-/* MISSIONS */
-const missions=[
- {text:"Plantează 3 morcovi",check:()=>inventory.carrot>=3,reward:20},
- {text:"Câștigă 50 💰",check:()=>money>=50,reward:30},
- {text:"Plantează 2 flori",check:()=>inventory.flower>=2,reward:50}
-];
-let missionIndex=0;
 
 /* UI */
 function show(id){
- ["farmView","missionView","buildView"].forEach(v=>{
-  document.getElementById(v).classList.add("hidden");
- });
+ farmView.classList.add("hidden");
+ marketView.classList.add("hidden");
  document.getElementById(id).classList.remove("hidden");
 }
-
-function updateStats(){
- stats.textContent=`💰 ${money} | ⭐ ${level}`;
+function statsUpdate(){
+ stats.textContent=`💰 ${money}`;
 }
 
 /* FARM */
 function drawFarm(){
  farm.innerHTML="";
  for(let i=0;i<64;i++){
-  const d=document.createElement("div");
-  d.className="tile";
+  const t=document.createElement("div");
+  t.className="tile";
+
   if(!FREE.includes(i)){
-   d.textContent="❄️";
+   t.style.backgroundImage="url('assets/tiles/ice.png')";
   }else if(!tiles[i]){
-   d.classList.add("free");
-   d.textContent="➕";
-   d.onclick=()=>plant(i);
+   t.style.backgroundImage="url('assets/tiles/grass.png')";
+   t.onclick=()=>plant(i);
   }else{
-   const c=crops[tiles[i].t];
-   const r=c.time-(Date.now()-tiles[i].d);
-   d.classList.add(r<=0?"ready":"growing");
-   d.textContent=r<=0?c.emoji:"⏳";
-   if(r<=0)d.onclick=()=>harvest(i);
+   const c=crops[tiles[i].type];
+   const r=c.time-(Date.now()-tiles[i].start);
+   t.style.backgroundImage=`url('${c.img}')`;
+   if(r>0){
+    const tm=document.createElement("div");
+    tm.className="time";
+    tm.textContent=Math.ceil(r/1000)+"s";
+    t.appendChild(tm);
+   }else{
+    t.onclick=()=>harvest(i);
+   }
   }
-  farm.appendChild(d);
+  farm.appendChild(t);
  }
 }
+
 function selectCrop(c){selectedCrop=c;}
 function plant(i){
  const c=crops[selectedCrop];
  if(money<c.cost)return;
  money-=c.cost;
- tiles[i]={t:selectedCrop,d:Date.now()};
- updateStats();drawFarm();
+ tiles[i]={type:selectedCrop,start:Date.now()};
+ statsUpdate();drawFarm();
 }
 function harvest(i){
- inventory[tiles[i].t]++;
+ inventory[tiles[i].type]++;
  delete tiles[i];
- updateStats();drawFarm();drawMission();
+ statsUpdate();drawFarm();drawMarket();
 }
 
-/* MISSIONS */
-function drawMission(){
- const m=missions[missionIndex];
- missionBox.innerHTML=m?
- `<p>${m.text}</p><button onclick="finishMission()">Finalizează</button>`:
- "🏆 Toate misiunile terminate!";
-}
-window.finishMission=()=>{
- const m=missions[missionIndex];
- if(!m.check())return alert("Nu e gata");
- money+=m.reward;
- level++;missionIndex++;
- updateStats();drawMission();
-};
-
-/* BUILDINGS */
-const buildingData={
- barn:{name:"Depozit",cost:30},
- mill:{name:"Moară",cost:50}
-};
-let buildings={barn:0,mill:0};
-function drawBuildings(){
- buildings.innerHTML="";
- for(const k in buildingData){
-  buildings.innerHTML+=`
-   <div class="listItem">
-    ${buildingData[k].name} lvl ${buildings[k]}
-    <button onclick="upgrade('${k}')">Upgrade</button>
+/* MARKET MMO (simplificat) */
+function drawMarket(){
+ market.innerHTML="";
+ for(const k in inventory){
+  market.innerHTML+=`
+   <div class="marketItem">
+    ${k} x${inventory[k]}
+    <button onclick="sell('${k}')">Vinde (${crops[k].price}💰)</button>
    </div>`;
  }
 }
-window.upgrade=k=>{
- const c=buildingData[k].cost;
- if(money<c)return;
- money-=c;buildings[k]++;updateStats();drawBuildings();
-};
+function sell(k){
+ if(inventory[k]<=0)return;
+ inventory[k]--;
+ money+=crops[k].price;
+ statsUpdate();drawMarket();
+}
 
 /* START */
-function initGame(){
- updateStats();
- drawFarm();
- drawMission();
- drawBuildings();
- setInterval(drawFarm,1000);
-}
+statsUpdate();
+drawFarm();
+drawMarket();
+setInterval(drawFarm,1000);
 </script>
 
 </body>
