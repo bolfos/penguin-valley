@@ -15,7 +15,6 @@ body{margin:0;font-family:Arial;background:#b3e5fc}
 .tile{width:70px;height:70px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#cfd8dc;position:relative}
 .free{background:#a5d6a7}
 .locked{background:#90a4ae}
-.bear{background:#6d4c41;color:white}
 .time{position:absolute;bottom:4px;right:4px;font-size:11px;background:rgba(0,0,0,.6);color:white;padding:2px 6px;border-radius:6px}
 .marketItem{background:white;padding:10px;border-radius:12px;margin-bottom:8px;display:flex;justify-content:space-between}
 </style>
@@ -31,7 +30,6 @@ body{margin:0;font-family:Arial;background:#b3e5fc}
 <div id="layout">
  <div id="menu">
   <button onclick="show('farmView')">🌾 Fermă</button>
-  <button onclick="show('missionView')">📜 Misiuni</button>
   <button onclick="show('marketView')">🏪 Market</button>
  </div>
 
@@ -43,43 +41,79 @@ body{margin:0;font-family:Arial;background:#b3e5fc}
    <div id="farm"></div>
   </div>
 
-  <div id="missionView" class="hidden">
-   <h2>Misiune</h2>
-   <div id="missionBox"></div>
-  </div>
-
   <div id="marketView" class="hidden">
-   <h2>Market NPC</h2>
+   <h2>Market</h2>
    <div id="market"></div>
   </div>
  </div>
 </div>
 
-<script>
-let money=30;
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged }
+ from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc }
+ from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+
+/* 🔥 FIREBASE CONFIG – AL TĂU */
+const firebaseConfig={
+ apiKey:"AIzaSyBSzq_-8WZ7xSqPqUd1nr_p4mNoHdFaZ3w",
+ authDomain:"penguin-valley-9d490.firebaseapp.com",
+ projectId:"penguin-valley-9d490",
+ appId:"1:399240782858:web:1d79355154b8be1ed3ebf3"
+};
+
+const app=initializeApp(firebaseConfig);
+const auth=getAuth();
+const db=getFirestore();
+
+/* GAME STATE */
+let uid=null;
+let money=20;
 let selectedCrop="carrot";
 let tiles={},inventory={carrot:0,cabbage:0,flower:0};
 let unlocked=20;
-let bearTile=null;
 
 const crops={
- carrot:{time:4000,cost:1,base:4},
- cabbage:{time:8000,cost:3,base:10},
- flower:{time:14000,cost:5,base:25}
+ carrot:{time:4000,cost:1,price:4},
+ cabbage:{time:8000,cost:3,price:10},
+ flower:{time:14000,cost:5,price:25}
 };
 
-const missions=[
- {text:"Plantează 3 morcovi",check:()=>inventory.carrot>=3,reward:()=>unlocked+=5},
- {text:"Câștigă 50💰",check:()=>money>=50,reward:()=>unlocked+=10},
- {text:"Plantează 2 flori",check:()=>inventory.flower>=2,reward:()=>spawnBear()}
-];
-let missionIndex=0;
+/* AUTH */
+signInAnonymously(auth);
+onAuthStateChanged(auth,async user=>{
+ if(!user)return;
+ uid=user.uid;
+ await loadGame();
+ startGame();
+});
 
-function show(id){
- ["farmView","missionView","marketView"].forEach(v=>document.getElementById(v).classList.add("hidden"));
- document.getElementById(id).classList.remove("hidden");
+/* FIRESTORE */
+async function loadGame(){
+ const ref=doc(db,"players",uid);
+ const snap=await getDoc(ref);
+ if(snap.exists()){
+  const d=snap.data();
+  money=d.money;tiles=d.tiles||{};
+  inventory=d.inventory||inventory;
+  unlocked=d.unlocked||unlocked;
+ }else{
+  await saveGame();
+ }
+}
+async function saveGame(){
+ await setDoc(doc(db,"players",uid),{
+  money,tiles,inventory,unlocked
+ });
 }
 
+/* UI */
+function show(id){
+ farmView.classList.add("hidden");
+ marketView.classList.add("hidden");
+ document.getElementById(id).classList.remove("hidden");
+}
 function statsUpdate(){stats.textContent=`💰 ${money}`}
 
 /* FARM */
@@ -87,10 +121,13 @@ function drawFarm(){
  farm.innerHTML="";
  for(let i=0;i<100;i++){
   const t=document.createElement("div");t.className="tile";
-  if(i===bearTile){t.classList.add("bear");t.textContent="🐻";t.onclick=removeBear;}
-  else if(i>=unlocked){t.classList.add("locked");t.textContent="❄️";t.onclick=()=>unlock(i);}
-  else if(!tiles[i]){t.classList.add("free");t.textContent="+";t.onclick=()=>plant(i);}
-  else{
+  if(i>=unlocked){
+   t.classList.add("locked");t.textContent="❄️";
+   t.onclick=()=>unlock();
+  }else if(!tiles[i]){
+   t.classList.add("free");t.textContent="+";
+   t.onclick=()=>plant(i);
+  }else{
    const c=crops[tiles[i].t];
    const r=c.time-(Date.now()-tiles[i].d);
    t.textContent=r<=0?"✔":"⏳";
@@ -100,49 +137,41 @@ function drawFarm(){
  }
 }
 
-function unlock(){if(money<10)return;money-=10;unlocked++;statsUpdate();drawFarm();}
+function unlock(){if(money<10)return;money-=10;unlocked++;statsUpdate();drawFarm();saveGame();}
 function selectCrop(c){selectedCrop=c}
 function plant(i){
  const c=crops[selectedCrop];
  if(money<c.cost)return;
- money-=c.cost;tiles[i]={t:selectedCrop,d:Date.now()};
- statsUpdate();drawFarm();
+ money-=c.cost;
+ tiles[i]={t:selectedCrop,d:Date.now()};
+ statsUpdate();drawFarm();saveGame();
 }
 function harvest(i){
- inventory[tiles[i].t]++;delete tiles[i];
- statsUpdate();drawFarm();drawMarket();drawMission();
+ inventory[tiles[i].t]++;
+ delete tiles[i];
+ statsUpdate();drawFarm();drawMarket();saveGame();
 }
 
-/* MISSIONS */
-function drawMission(){
- const m=missions[missionIndex];
- missionBox.innerHTML=m?`<p>${m.text}</p><button onclick="finishMission()">Finalizează</button>`:"🏆 Toate terminate";
-}
-function finishMission(){
- const m=missions[missionIndex];
- if(!m.check())return alert("Nu e gata");
- m.reward();missionIndex++;drawMission();drawFarm();
-}
-
-/* MARKET NPC */
+/* MARKET */
 function drawMarket(){
  market.innerHTML="";
  for(const k in inventory){
-  const price=Math.max(1,Math.floor(crops[k].base*(0.8+Math.random()*0.4)));
   market.innerHTML+=`
    <div class="marketItem">${k} x${inventory[k]}
-   <button onclick="sell('${k}',${price})">Vinde ${price}💰</button></div>`;
+   <button onclick="sell('${k}')">Vinde ${crops[k].price}💰</button></div>`;
  }
 }
-function sell(k,p){if(inventory[k]<=0)return;inventory[k]--;money+=p;statsUpdate();drawMarket();}
-
-/* EVENTS */
-function spawnBear(){bearTile=Math.floor(Math.random()*unlocked)}
-function removeBear(){if(money<15)return;money-=15;bearTile=null;statsUpdate();drawFarm()}
+window.sell=k=>{
+ if(inventory[k]<=0)return;
+ inventory[k]--;money+=crops[k].price;
+ statsUpdate();drawMarket();saveGame();
+};
 
 /* START */
-statsUpdate();drawFarm();drawMarket();drawMission();
-setInterval(drawFarm,1000);
+function startGame(){
+ statsUpdate();drawFarm();drawMarket();
+ setInterval(drawFarm,1000);
+}
 </script>
 
 </body>
