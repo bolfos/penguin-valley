@@ -3,91 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <title>Penguin Farmer</title>
-
 <style>
-body{
- margin:0;
- font-family:Arial;
- background:#b3e5fc;
-}
-#top{
- background:#0d47a1;
- color:white;
- padding:10px;
- display:flex;
- justify-content:space-between;
-}
+body{margin:0;font-family:Arial;background:#b3e5fc}
+#top{background:#0d47a1;color:white;padding:10px;display:flex;justify-content:space-between}
 #layout{display:flex;height:calc(100vh - 50px)}
-#menu{
- width:200px;
- background:#bbdefb;
- padding:10px;
-}
-#menu button{
- width:100%;
- margin-bottom:8px;
- padding:10px;
- border:none;
- border-radius:12px;
- background:#1976d2;
- color:white;
- cursor:pointer;
-}
+#menu{width:200px;background:#bbdefb;padding:10px}
+#menu button{width:100%;margin-bottom:8px;padding:10px;border:none;border-radius:12px;background:#1976d2;color:white}
 #content{flex:1;padding:12px}
 .hidden{display:none}
-
-/* FARM */
-#farm{
- display:grid;
- grid-template-columns:repeat(10,70px);
- gap:8px;
- justify-content:center;
-}
-.tile{
- width:70px;height:70px;
- border-radius:14px;
- display:flex;
- align-items:center;
- justify-content:center;
- position:relative;
- background:#cfd8dc;
- background-size:cover;
-}
+#farm{display:grid;grid-template-columns:repeat(10,70px);gap:8px;justify-content:center}
+.tile{width:70px;height:70px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#cfd8dc;position:relative}
 .free{background:#a5d6a7}
 .locked{background:#90a4ae}
-.time{
- position:absolute;
- bottom:4px;
- right:4px;
- font-size:11px;
- background:rgba(0,0,0,.6);
- color:white;
- padding:2px 6px;
- border-radius:6px;
-}
-
-/* BUILDINGS */
-.build{
- width:90px;
- height:90px;
- background:#ffe082;
- border-radius:16px;
- display:inline-flex;
- align-items:center;
- justify-content:center;
- margin:8px;
- cursor:pointer;
-}
-
-/* MARKET */
-.marketItem{
- background:white;
- padding:10px;
- border-radius:12px;
- margin-bottom:8px;
- display:flex;
- justify-content:space-between;
-}
+.bear{background:#6d4c41;color:white}
+.time{position:absolute;bottom:4px;right:4px;font-size:11px;background:rgba(0,0,0,.6);color:white;padding:2px 6px;border-radius:6px}
+.marketItem{background:white;padding:10px;border-radius:12px;margin-bottom:8px;display:flex;justify-content:space-between}
 </style>
 </head>
 
@@ -101,156 +31,117 @@ body{
 <div id="layout">
  <div id="menu">
   <button onclick="show('farmView')">🌾 Fermă</button>
+  <button onclick="show('missionView')">📜 Misiuni</button>
   <button onclick="show('marketView')">🏪 Market</button>
-  <button onclick="show('buildView')">🏗️ Clădiri</button>
  </div>
 
  <div id="content">
   <div id="farmView">
-   <h3>Culturi</h3>
-   <button onclick="selectCrop('carrot')">Morcov</button>
-   <button onclick="selectCrop('cabbage')">Varză</button>
-   <button onclick="selectCrop('flower')">Floare</button>
+   <button onclick="selectCrop('carrot')">🥕</button>
+   <button onclick="selectCrop('cabbage')">🥬</button>
+   <button onclick="selectCrop('flower')">🌼</button>
    <div id="farm"></div>
   </div>
 
-  <div id="marketView" class="hidden">
-   <h2>Market</h2>
-   <div id="market"></div>
+  <div id="missionView" class="hidden">
+   <h2>Misiune</h2>
+   <div id="missionBox"></div>
   </div>
 
-  <div id="buildView" class="hidden">
-   <h2>Clădiri</h2>
-   <div id="buildings"></div>
+  <div id="marketView" class="hidden">
+   <h2>Market NPC</h2>
+   <div id="market"></div>
   </div>
  </div>
 </div>
 
 <script>
-let money=40;
+let money=30;
 let selectedCrop="carrot";
-let tiles={};
-let inventory={carrot:0,cabbage:0,flower:0};
-let unlocked=20; // câte tile-uri sunt deblocate
+let tiles={},inventory={carrot:0,cabbage:0,flower:0};
+let unlocked=20;
+let bearTile=null;
 
 const crops={
- carrot:{img:"assets/crops/carrot.png",time:4000,cost:1,price:4},
- cabbage:{img:"assets/crops/cabbage.png",time:8000,cost:3,price:10},
- flower:{img:"assets/crops/flower.png",time:14000,cost:5,price:25}
+ carrot:{time:4000,cost:1,base:4},
+ cabbage:{time:8000,cost:3,base:10},
+ flower:{time:14000,cost:5,base:25}
 };
 
-const buildingsData={
- barn:{name:"Depozit",cost:30},
- market:{name:"Market",cost:50}
-};
-let buildings={barn:0,market:0};
+const missions=[
+ {text:"Plantează 3 morcovi",check:()=>inventory.carrot>=3,reward:()=>unlocked+=5},
+ {text:"Câștigă 50💰",check:()=>money>=50,reward:()=>unlocked+=10},
+ {text:"Plantează 2 flori",check:()=>inventory.flower>=2,reward:()=>spawnBear()}
+];
+let missionIndex=0;
 
 function show(id){
- ["farmView","marketView","buildView"].forEach(v=>{
-  document.getElementById(v).classList.add("hidden");
- });
+ ["farmView","missionView","marketView"].forEach(v=>document.getElementById(v).classList.add("hidden"));
  document.getElementById(id).classList.remove("hidden");
 }
 
-function updateStats(){
- stats.textContent=`💰 ${money}`;
-}
+function statsUpdate(){stats.textContent=`💰 ${money}`}
 
 /* FARM */
 function drawFarm(){
  farm.innerHTML="";
  for(let i=0;i<100;i++){
-  const t=document.createElement("div");
-  t.className="tile";
-
-  if(i>=unlocked){
-   t.classList.add("locked");
-   t.textContent="❄️";
-   t.onclick=()=>unlockTile(i);
-  }else if(!tiles[i]){
-   t.classList.add("free");
-   t.textContent="+";
-   t.onclick=()=>plant(i);
-  }else{
-   const c=crops[tiles[i].type];
-   const r=c.time-(Date.now()-tiles[i].start);
-   t.style.backgroundImage=`url('${c.img}')`;
-   if(r>0){
-    const tm=document.createElement("div");
-    tm.className="time";
-    tm.textContent=Math.ceil(r/1000)+"s";
-    t.appendChild(tm);
-   }else{
-    t.textContent="✔";
-    t.onclick=()=>harvest(i);
-   }
+  const t=document.createElement("div");t.className="tile";
+  if(i===bearTile){t.classList.add("bear");t.textContent="🐻";t.onclick=removeBear;}
+  else if(i>=unlocked){t.classList.add("locked");t.textContent="❄️";t.onclick=()=>unlock(i);}
+  else if(!tiles[i]){t.classList.add("free");t.textContent="+";t.onclick=()=>plant(i);}
+  else{
+   const c=crops[tiles[i].t];
+   const r=c.time-(Date.now()-tiles[i].d);
+   t.textContent=r<=0?"✔":"⏳";
+   if(r<=0)t.onclick=()=>harvest(i);
   }
   farm.appendChild(t);
  }
 }
 
-function unlockTile(i){
- if(money<10)return;
- money-=10;
- unlocked++;
- updateStats();
- drawFarm();
-}
-
-function selectCrop(c){selectedCrop=c;}
+function unlock(){if(money<10)return;money-=10;unlocked++;statsUpdate();drawFarm();}
+function selectCrop(c){selectedCrop=c}
 function plant(i){
  const c=crops[selectedCrop];
  if(money<c.cost)return;
- money-=c.cost;
- tiles[i]={type:selectedCrop,start:Date.now()};
- updateStats();drawFarm();
+ money-=c.cost;tiles[i]={t:selectedCrop,d:Date.now()};
+ statsUpdate();drawFarm();
 }
 function harvest(i){
- inventory[tiles[i].type]++;
- delete tiles[i];
- updateStats();drawFarm();drawMarket();
+ inventory[tiles[i].t]++;delete tiles[i];
+ statsUpdate();drawFarm();drawMarket();drawMission();
 }
 
-/* MARKET */
+/* MISSIONS */
+function drawMission(){
+ const m=missions[missionIndex];
+ missionBox.innerHTML=m?`<p>${m.text}</p><button onclick="finishMission()">Finalizează</button>`:"🏆 Toate terminate";
+}
+function finishMission(){
+ const m=missions[missionIndex];
+ if(!m.check())return alert("Nu e gata");
+ m.reward();missionIndex++;drawMission();drawFarm();
+}
+
+/* MARKET NPC */
 function drawMarket(){
  market.innerHTML="";
  for(const k in inventory){
+  const price=Math.max(1,Math.floor(crops[k].base*(0.8+Math.random()*0.4)));
   market.innerHTML+=`
-   <div class="marketItem">
-    ${k} x${inventory[k]}
-    <button onclick="sell('${k}')">Vinde ${crops[k].price}💰</button>
-   </div>`;
+   <div class="marketItem">${k} x${inventory[k]}
+   <button onclick="sell('${k}',${price})">Vinde ${price}💰</button></div>`;
  }
 }
-function sell(k){
- if(inventory[k]<=0)return;
- inventory[k]--;
- money+=crops[k].price;
- updateStats();drawMarket();
-}
+function sell(k,p){if(inventory[k]<=0)return;inventory[k]--;money+=p;statsUpdate();drawMarket();}
 
-/* BUILDINGS */
-function drawBuildings(){
- buildings.innerHTML="";
- for(const k in buildingsData){
-  buildings.innerHTML+=`
-   <div class="build" onclick="upgrade('${k}')">
-    ${buildingsData[k].name}<br>lvl ${buildings[k]}
-   </div>`;
- }
-}
-function upgrade(k){
- if(money<buildingsData[k].cost)return;
- money-=buildingsData[k].cost;
- buildings[k]++;
- updateStats();drawBuildings();
-}
+/* EVENTS */
+function spawnBear(){bearTile=Math.floor(Math.random()*unlocked)}
+function removeBear(){if(money<15)return;money-=15;bearTile=null;statsUpdate();drawFarm()}
 
 /* START */
-updateStats();
-drawFarm();
-drawMarket();
-drawBuildings();
+statsUpdate();drawFarm();drawMarket();drawMission();
 setInterval(drawFarm,1000);
 </script>
 
