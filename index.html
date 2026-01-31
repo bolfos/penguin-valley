@@ -7,7 +7,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
  apiKey: "AIzaSyBSzq_-8WZ7xSqPqUd1nr_p4mNoHdFaZ3w",
@@ -38,10 +38,10 @@ onAuthStateChanged(auth,async u=>{
  const ref=doc(db,"users",uid);
  const snap=await getDoc(ref);
  if(snap.exists()) Object.assign(state,snap.data());
- draw(); drawQuest();
+ draw();
+ watchPlayers();
  setInterval(draw,1000);
 });
-
 async function save(){
  if(uid) await setDoc(doc(db,"users",uid),state);
 }
@@ -51,14 +51,7 @@ async function save(){
 body{margin:0;font-family:Arial;background:#bfe7ff}
 button,input{padding:6px;margin:4px}
 
-/* HARTA */
-#world{
- width:2000px;
- height:2000px;
- background:linear-gradient(#e0f8ff,#b0e0ff);
- position:relative;
-}
-
+/* VIEWPORT */
 #viewport{
  width:100vw;
  height:100vh;
@@ -66,13 +59,21 @@ button,input{padding:6px;margin:4px}
  border:4px solid #4aa3c4;
 }
 
-/* ZONA FERMA */
+/* WORLD */
+#world{
+ width:2000px;
+ height:2000px;
+ background:linear-gradient(#e0f8ff,#b0e0ff);
+ position:relative;
+}
+
+/* FARM */
 #farm{
  position:absolute;
- top:200px;
- left:200px;
+ top:300px;
+ left:300px;
  display:grid;
- grid-template-columns:repeat(8,70px);
+ grid-template-columns:repeat(6,70px);
  gap:6px;
  background:#ffffffcc;
  padding:10px;
@@ -90,16 +91,21 @@ button,input{padding:6px;margin:4px}
  cursor:pointer;
 }
 
-/* NPC */
-.npc{
+/* BUILDINGS */
+.building{
  position:absolute;
- top:200px;
- left:700px;
- font-size:48px;
+ width:120px;
  cursor:pointer;
 }
 
-/* UI */
+/* PLAYERS */
+.player{
+ position:absolute;
+ width:48px;
+ pointer-events:none;
+}
+
+/* HUD */
 #hud{
  position:fixed;
  top:5px;
@@ -107,18 +113,6 @@ button,input{padding:6px;margin:4px}
  background:white;
  padding:8px;
  border-radius:10px;
-}
-
-#dialog{
- position:fixed;
- bottom:10px;
- left:50%;
- transform:translateX(-50%);
- background:white;
- width:300px;
- padding:10px;
- border-radius:12px;
- display:none;
 }
 </style>
 </head>
@@ -138,103 +132,95 @@ button,input{padding:6px;margin:4px}
 <div id="hud"></div>
 
 <div id="viewport">
- <div id="world">
+ <div id="world" onclick="move(event)">
 
-  <!-- FERMA -->
+  <!-- BUILDINGS -->
+  <img src="assets/market.png" class="building" style="top:150px;left:800px">
+  <img src="assets/house.png" class="building" style="top:600px;left:400px">
+  <img src="assets/storage.png" class="building" style="top:500px;left:900px">
+
+  <!-- FARM -->
   <div id="farm"></div>
 
-  <!-- NPC -->
-  <div class="npc" onclick="talk()">🧓🐧</div>
+  <!-- PLAYERS -->
+  <div id="players"></div>
 
  </div>
 </div>
 
-<div id="dialog"></div>
-
 </div>
 
 <script>
-/* JOC */
 const crops={
  carrot:{t:60000,c:1,p:5},
  cabbage:{t:180000,c:3,p:15},
  flower:{t:360000,c:5,p:40}
 };
 
-const npcDialog=[
- "Salut, mic fermier! 🌱",
- "Ajută-ne să facem gheața verde!",
- "Plantează 3 🥕 pentru început.",
- "Excelent! Acum ești unul de-al nostru 🐧"
-];
-
 let state={
  money:20,
  gems:0,
  sel:"carrot",
  tiles:{},
- quest:0,
- dialog:0,
- stats:{harv:{carrot:0,cabbage:0,flower:0}}
+ x:400,
+ y:400
 };
 
 const farm=document.getElementById("farm");
 const hud=document.getElementById("hud");
-const dialogBox=document.getElementById("dialog");
-
-function sel(t){state.sel=t}
+const playersBox=document.getElementById("players");
 
 function draw(){
  hud.textContent=`💰 ${state.money} | 💎 ${state.gems}`;
  farm.innerHTML="";
- for(let i=0;i<32;i++){
+ for(let i=0;i<24;i++){
   const d=document.createElement("div");
   d.className="tile";
   if(!state.tiles[i]){
-   d.textContent="🐧";
+   d.textContent="🌱";
    d.onclick=()=>plant(i);
   }else{
-   d.textContent="🌱";
+   d.textContent="🥕";
    d.onclick=()=>harvest(i);
   }
   farm.appendChild(d);
  }
+ save();
 }
 
 function plant(i){
  if(state.tiles[i]) return;
- const c=crops[state.sel];
- if(state.money<c.c) return;
- state.money-=c.c;
- state.tiles[i]={t:state.sel,d:Date.now()};
- save(); draw();
+ state.tiles[i]={t:"carrot",d:Date.now()};
 }
 
 function harvest(i){
- const x=state.tiles[i];
- const c=crops[x.t];
- if(Date.now()-x.d<c.t) return;
- state.money+=c.p;
- state.stats.harv[x.t]++;
  delete state.tiles[i];
- save(); draw(); drawQuest();
+ state.money+=5;
 }
 
-/* NPC + QUEST */
-function talk(){
- dialogBox.style.display="block";
- dialogBox.innerHTML=npcDialog[state.dialog] || "Ne vedem mai târziu!";
- state.dialog++;
+/* PLAYER MOVE */
+function move(e){
+ const r=e.currentTarget.getBoundingClientRect();
+ state.x=e.clientX-r.left;
+ state.y=e.clientY-r.top;
  save();
 }
 
-function drawQuest(){
- if(state.stats.harv.carrot>=3 && state.quest===0){
-  state.money+=20;
-  state.gems+=2;
-  state.quest=1;
-  save();
- }
+/* MULTIPLAYER */
+function watchPlayers(){
+ onSnapshot(collection(db,"users"),snap=>{
+  playersBox.innerHTML="";
+  snap.forEach(d=>{
+   if(d.id===uid) return;
+   const p=d.data();
+   const img=document.createElement("img");
+   img.src="assets/player.png";
+   img.className="player";
+   img.style.left=p.x+"px";
+   img.style.top=p.y+"px";
+   playersBox.appendChild(img);
+  });
+ });
 }
 </script>
 
