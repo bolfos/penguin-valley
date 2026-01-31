@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
 <meta charset="UTF-8">
-<title>Penguin Valley</title>
+<title>Penguin Valley MMO</title>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.8.0/firebase-app.js";
@@ -12,17 +12,16 @@ import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/fireb
 const firebaseConfig = {
  apiKey: "AIzaSyBSzq_-8WZ7xSqPqUd1nr_p4mNoHdFaZ3w",
  authDomain: "penguin-valley-9d490.firebaseapp.com",
- projectId: "penguin-valley-9d490",
- storageBucket: "penguin-valley-9d490.firebasestorage.app",
- messagingSenderId: "399240782858",
- appId: "1:399240782858:web:1d79355154b8be1ed3ebf3"
+ projectId: "penguin-valley-9d490"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth();
 const db = getFirestore();
 
-window.login = async () => {
+let uid=null;
+
+window.login=async()=>{
  try{
   await signInWithEmailAndPassword(auth,email.value,pass.value);
  }catch{
@@ -31,207 +30,210 @@ window.login = async () => {
 };
 
 onAuthStateChanged(auth,async u=>{
- if(!u)return;
+ if(!u) return;
+ uid=u.uid;
  loginBox.style.display="none";
  game.style.display="block";
- const ref=doc(db,"users",u.uid);
+
+ const ref=doc(db,"users",uid);
  const snap=await getDoc(ref);
  if(snap.exists()) Object.assign(state,snap.data());
- draw(); setInterval(draw,1000);
+ draw(); drawQuest();
+ setInterval(draw,1000);
 });
 
-window.save=async()=>{
- const u=auth.currentUser;
- if(u) await setDoc(doc(db,"users",u.uid),state);
-};
+async function save(){
+ if(uid) await setDoc(doc(db,"users",uid),state);
+}
 </script>
 
 <style>
-body{margin:0;font-family:Arial;background:#cfefff;text-align:center}
-input,button{padding:8px;margin:5px}
-#loginBox{margin-top:100px}
-#game{display:none}
+body{margin:0;font-family:Arial;background:#bfe7ff}
+button,input{padding:6px;margin:4px}
 
-#top{display:flex;justify-content:space-around;align-items:center}
+/* HARTA */
+#world{
+ width:2000px;
+ height:2000px;
+ background:linear-gradient(#e0f8ff,#b0e0ff);
+ position:relative;
+}
 
+#viewport{
+ width:100vw;
+ height:100vh;
+ overflow:scroll;
+ border:4px solid #4aa3c4;
+}
+
+/* ZONA FERMA */
 #farm{
+ position:absolute;
+ top:200px;
+ left:200px;
  display:grid;
- grid-template-columns:repeat(10,70px);
+ grid-template-columns:repeat(8,70px);
  gap:6px;
- justify-content:center;
- margin:20px auto;
+ background:#ffffffcc;
+ padding:10px;
+ border-radius:16px;
 }
 
 .tile{
  width:70px;height:70px;
- background-size:cover;
  border-radius:14px;
- animation:pop .2s;
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ font-size:32px;
+ background:#9fda9f;
+ cursor:pointer;
 }
 
-@keyframes pop{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+/* NPC */
+.npc{
+ position:absolute;
+ top:200px;
+ left:700px;
+ font-size:48px;
+ cursor:pointer;
+}
 
-.free{background-image:url("assets/tiles/grass.png")}
-.locked{background-image:url("assets/tiles/ice.png")}
-.carrot{background-image:url("assets/tiles/carrot.png")}
-.cabbage{background-image:url("assets/tiles/cabbage.png")}
-.flower{background-image:url("assets/tiles/flower.png")}
-
-#npcBox,#buildingBox{
+/* UI */
+#hud{
+ position:fixed;
+ top:5px;
+ left:5px;
  background:white;
- width:320px;
- margin:15px auto;
+ padding:8px;
+ border-radius:10px;
+}
+
+#dialog{
+ position:fixed;
+ bottom:10px;
+ left:50%;
+ transform:translateX(-50%);
+ background:white;
+ width:300px;
  padding:10px;
  border-radius:12px;
- box-shadow:0 4px 10px rgba(0,0,0,.2)
-}
-
-.building{
- width:100px;
- cursor:pointer;
- margin:5px;
+ display:none;
 }
 </style>
 </head>
 
 <body>
 
-<div id="loginBox">
- <h2>🐧 Penguin Valley</h2>
- <input id="email" placeholder="email">
- <input id="pass" type="password">
- <br>
- <button onclick="login()">Intră / Creează cont</button>
+<div id="loginBox" style="text-align:center">
+<h2>🐧 Penguin Valley</h2>
+<input id="email" placeholder="email">
+<input id="pass" type="password">
+<br>
+<button onclick="login()">Intră / Creează cont</button>
 </div>
 
-<div id="game">
- <div id="top">
-  <div id="money">💰</div>
-  <div>
-   <button onclick="sel('carrot')">🥕</button>
-   <button onclick="sel('cabbage')">🥬</button>
-   <button onclick="sel('flower')">🌼</button>
-  </div>
+<div id="game" style="display:none">
+
+<div id="hud"></div>
+
+<div id="viewport">
+ <div id="world">
+
+  <!-- FERMA -->
+  <div id="farm"></div>
+
+  <!-- NPC -->
+  <div class="npc" onclick="talk()">🧓🐧</div>
+
  </div>
+</div>
 
- <img src="assets/penguin.png" width="80">
+<div id="dialog"></div>
 
- <!-- CLĂDIRI -->
- <div id="buildingBox">
-  <b>🏗️ Clădiri</b><br>
-  <img src="assets/buildings/market.png" class="building" onclick="openMarket()">
-  <img src="assets/buildings/storage.png" class="building" onclick="openStorage()">
-  <img src="assets/buildings/house.png" class="building" onclick="openHouse()">
-  <div id="buildingInfo"></div>
- </div>
-
- <!-- NPC -->
- <div id="npcBox">
-  <b id="missionText"></b><br>
-  <button onclick="claimMission()">Finalizează misiunea</button>
- </div>
-
- <div id="farm"></div>
 </div>
 
 <script>
+/* JOC */
 const crops={
  carrot:{t:60000,c:1,p:5},
  cabbage:{t:180000,c:3,p:15},
  flower:{t:360000,c:5,p:40}
 };
 
-const missions=[
- {text:"Plantează 3 morcovi",check:()=>count("carrot")>=3,reward:10},
- {text:"Câștigă 30 monede",check:()=>state.money>=30,reward:20}
+const npcDialog=[
+ "Salut, mic fermier! 🌱",
+ "Ajută-ne să facem gheața verde!",
+ "Plantează 3 🥕 pentru început.",
+ "Excelent! Acum ești unul de-al nostru 🐧"
 ];
 
 let state={
- money:10,
- tiles:{},
- unlocked:20,
+ money:20,
+ gems:0,
  sel:"carrot",
- mission:0,
- storage:0
+ tiles:{},
+ quest:0,
+ dialog:0,
+ stats:{harv:{carrot:0,cabbage:0,flower:0}}
 };
 
 const farm=document.getElementById("farm");
-const money=document.getElementById("money");
-const missionText=document.getElementById("missionText");
-const info=document.getElementById("buildingInfo");
+const hud=document.getElementById("hud");
+const dialogBox=document.getElementById("dialog");
 
 function sel(t){state.sel=t}
 
-function count(t){return Object.values(state.tiles).filter(x=>x.t===t).length}
+function draw(){
+ hud.textContent=`💰 ${state.money} | 💎 ${state.gems}`;
+ farm.innerHTML="";
+ for(let i=0;i<32;i++){
+  const d=document.createElement("div");
+  d.className="tile";
+  if(!state.tiles[i]){
+   d.textContent="🐧";
+   d.onclick=()=>plant(i);
+  }else{
+   d.textContent="🌱";
+   d.onclick=()=>harvest(i);
+  }
+  farm.appendChild(d);
+ }
+}
 
 function plant(i){
+ if(state.tiles[i]) return;
  const c=crops[state.sel];
- if(state.money<c.c||state.tiles[i])return;
+ if(state.money<c.c) return;
  state.money-=c.c;
  state.tiles[i]={t:state.sel,d:Date.now()};
- save();draw();
+ save(); draw();
 }
 
 function harvest(i){
  const x=state.tiles[i];
  const c=crops[x.t];
- if(Date.now()-x.d<c.t)return;
+ if(Date.now()-x.d<c.t) return;
  state.money+=c.p;
+ state.stats.harv[x.t]++;
  delete state.tiles[i];
- save();draw();
+ save(); draw(); drawQuest();
 }
 
-function unlock(){
- if(state.money<5)return;
- state.money-=5;
- state.unlocked++;
- save();draw();
-}
-
-/* CLĂDIRI */
-function openMarket(){
- info.innerHTML="🏪 Market: vinzi automat recolta (+20%)";
-}
-
-function openStorage(){
- state.storage+=10;
- info.innerHTML="📦 Depozit extins: +10 capacitate";
+/* NPC + QUEST */
+function talk(){
+ dialogBox.style.display="block";
+ dialogBox.innerHTML=npcDialog[state.dialog] || "Ne vedem mai târziu!";
+ state.dialog++;
  save();
 }
 
-function openHouse(){
- state.unlocked+=5;
- info.innerHTML="🏠 Casă: +5 tile-uri";
- save();
-}
-
-/* MISIUNI */
-function claimMission(){
- const m=missions[state.mission];
- if(!m||!m.check())return;
- state.money+=m.reward;
- state.mission++;
- save();draw();
-}
-
-function draw(){
- money.textContent="💰 "+state.money;
- missionText.textContent=missions[state.mission]?.text || "Toate misiunile finalizate 🎉";
- farm.innerHTML="";
- for(let i=0;i<100;i++){
-  const d=document.createElement("div");
-  d.className="tile";
-  if(i>=state.unlocked){
-   d.classList.add("locked");
-   d.onclick=unlock;
-  }else if(!state.tiles[i]){
-   d.classList.add("free");
-   d.onclick=()=>plant(i);
-  }else{
-   d.classList.add(state.tiles[i].t);
-   d.onclick=()=>harvest(i);
-  }
-  farm.appendChild(d);
+function drawQuest(){
+ if(state.stats.harv.carrot>=3 && state.quest===0){
+  state.money+=20;
+  state.gems+=2;
+  state.quest=1;
+  save();
  }
 }
 </script>
