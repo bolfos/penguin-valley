@@ -1,0 +1,17 @@
+penguin-valley/
+│
+├── index.html   ✅ (jocul)
+│
+└── assets/
+    ├── tiles/
+    │   ├── grass.png
+    │   ├── ice.png
+    │   ├── carrot.png
+    │   ├── cabbage.png
+    │   └── flower.png
+    │
+    ├── buildings/
+    │   ├── market.png
+    │   └── house.png
+    │
+    └── penguin.png
